@@ -5,8 +5,7 @@ use dialoguer::Confirm;
 use std::env;
 use std::fmt::Display;
 use std::fs;
-use std::io::SeekFrom;
-use std::io::{self, Read, Seek, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::process::Command;
 use std::process::Stdio;
 
@@ -68,10 +67,7 @@ fn prim() -> anyhow::Result<&'static str> {
     };
     let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
     {
-        // write!(tmpfile, "{}", input);
         write!(tmpfile, "{}", input)?;
-        // .write_all(input.as_bytes())
-        // .expect("Failed to write to stdin");
         let editor = env::var("EDITOR").unwrap_or("vim".to_string());
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
         let child = Command::new(editor)

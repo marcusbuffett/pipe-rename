@@ -1,6 +1,6 @@
 # pipe-rename
 
-pipe-rename takes a list of files as input, opens your \$EDITOR of choice, then
+`pipe-rename` takes a list of files as input, opens your \$EDITOR of choice, then
 renames those files accordingly.
 
 [![asciicast](https://asciinema.org/a/NdYTt0JeMyZpVZCNLJL1Opq19.svg)](https://asciinema.org/a/NdYTt0JeMyZpVZCNLJL1Opq19)
