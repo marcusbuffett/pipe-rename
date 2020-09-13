@@ -100,6 +100,19 @@ fn main() -> anyhow::Result<()> {
         return Err(RenamerError::NoReplacementsFound.into());
     }
     println!();
+    let replacements_over_existing_files: Vec<_> = replacements
+        .iter()
+        .filter(|replacement| Path::new(&replacement.new).exists())
+        .collect();
+    if !replacements_over_existing_files.is_empty() {
+        println!("The following replacements overwrite existing files:");
+        for replacement in replacements.clone() {
+            println!("{}", Colour::Green.paint(replacement.to_string()));
+        }
+        println!();
+        println!("Refusing to overwrite existing files. Aborting.");
+        return Ok(());
+    }
     println!(
         "{}",
         Colour::Yellow.paint("The following replacements were found")
@@ -114,13 +127,6 @@ fn main() -> anyhow::Result<()> {
         .interact()?
     {
         for replacement in replacements {
-            if Path::new(&replacement.new).exists() {
-                println!(
-                    "Refusing to rename {} to {}, the file already exists",
-                    replacement.original, replacement.new
-                );
-                continue;
-            }
             if let Some(cmd) = matches.value_of("rename-command") {
                 subprocess::Exec::shell(format!(
                     "{} {} {}",
