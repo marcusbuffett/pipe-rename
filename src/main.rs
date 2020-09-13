@@ -104,7 +104,7 @@ fn main() -> anyhow::Result<()> {
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
         let child = Command::new(editor)
             .arg(tmpfile.path())
-            .stdin(Stdio::piped())
+            .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .spawn()
             .context("Failed to execute editor process")?;
