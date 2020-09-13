@@ -56,7 +56,7 @@ fn find_renames(old_lines: String, new_lines: String) -> Result<Vec<Rename>, Ren
 
 fn prim() -> anyhow::Result<&'static str> {
     let matches = App::new("renamer")
-                          .version("1.0")
+                          .version(clap::crate_version!())
                           .author("Marcus B. <me@mbuffett.com")
                           .about("Takes a list of files and renames/removes them, by piping them through an external editor")
                           .arg(
