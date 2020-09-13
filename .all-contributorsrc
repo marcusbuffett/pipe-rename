@@ -1,0 +1,26 @@
+{
+  "projectName": "pipe-rename",
+  "projectOwner": "marcusbuffett",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "none",
+  "contributors": [
+    {
+      "login": "marcusbuffett",
+      "name": "Marcus Buffett",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/1834328?v=4",
+      "profile": "https://mbuffett.com/",
+      "contributions": [
+        "ideas",
+        "code",
+        "design"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}
