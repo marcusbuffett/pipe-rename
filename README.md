@@ -16,3 +16,19 @@ This will install the `renamer` binary.
 Usage is simple, just pipe a list of files into `renamer`. This will open your
 \$EDITOR (or vim, if not set), and once your editor exits it will detect which
 files were renamed.
+
+Helptext:
+
+```
+Takes a list of files and renames/removes them, by piping them through an external editor
+
+USAGE:
+    renamer [OPTIONS]
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -c, --rename-command <COMMAND>    Optionally set a custom rename command, like 'git mv'
+```

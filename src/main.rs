@@ -55,10 +55,17 @@ fn find_renames(old_lines: String, new_lines: String) -> Result<Vec<Rename>, Ren
 }
 
 fn prim() -> anyhow::Result<&'static str> {
-    let _matches = App::new("renamer")
+    let matches = App::new("renamer")
                           .version("1.0")
                           .author("Marcus B. <me@mbuffett.com")
                           .about("Takes a list of files and renames/removes them, by piping them through an external editor")
+                          .arg(
+                              clap::Arg::with_name("rename-command")
+                               .value_name("COMMAND")
+                               .long("rename-command")
+                               .short("c")
+                               .help("Optionally set a custom rename command, like 'git mv'")
+                               )
                           .get_matches();
     let input = {
         let mut buffer = String::new();
@@ -102,7 +109,16 @@ fn prim() -> anyhow::Result<&'static str> {
             .interact()?
         {
             for replacement in replacements {
-                fs::rename(replacement.original, replacement.new)?; // Rename a.txt to b.txt
+                if let Some(val) = matches.value_of("rename-command") {
+                    // println!("{}", val);
+                    subprocess::Exec::shell(format!(
+                        "{} {} {}",
+                        val, replacement.original, replacement.new
+                    ))
+                    .join()?;
+                } else {
+                    fs::rename(replacement.original, replacement.new)?; // Rename a.txt to b.txt
+                }
             }
         } else {
             println!("Aborting")
