@@ -20,6 +20,17 @@
         "code",
         "design"
       ]
+    },
+    {
+      "login": "robinkrahl",
+      "name": "Robin Krahl",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/165115?v=4",
+      "profile": "https://git.ireas.org/",
+      "contributions": [
+        "ideas",
+        "code",
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7
