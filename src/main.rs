@@ -7,6 +7,7 @@ use std::env;
 use std::fmt::Display;
 use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -113,11 +114,17 @@ fn main() -> anyhow::Result<()> {
         .interact()?
     {
         for replacement in replacements {
-            if let Some(val) = matches.value_of("rename-command") {
-                // println!("{}", val);
+            if Path::new(&replacement.new).exists() {
+                println!(
+                    "Refusing to rename {} to {}, the file already exists",
+                    replacement.original, replacement.new
+                );
+                continue;
+            }
+            if let Some(cmd) = matches.value_of("rename-command") {
                 subprocess::Exec::shell(format!(
                     "{} {} {}",
-                    val, replacement.original, replacement.new
+                    cmd, replacement.original, replacement.new
                 ))
                 .join()?;
             } else {
