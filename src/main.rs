@@ -83,7 +83,6 @@ fn main() -> anyhow::Result<()> {
             .into_iter()
             .map(|f| f.to_string())
             .collect::<Vec<String>>()
-            .clone()
     } else {
         let input = {
             let mut buffer = String::new();
@@ -128,7 +127,7 @@ fn main() -> anyhow::Result<()> {
         .collect();
     if !replacements_over_existing_files.is_empty() {
         println!("The following replacements overwrite existing files:");
-        for replacement in replacements.clone() {
+        for replacement in &replacements {
             println!("{}", Colour::Green.paint(replacement.to_string()));
         }
         println!();
@@ -140,7 +139,7 @@ fn main() -> anyhow::Result<()> {
         Colour::Yellow.paint("The following replacements were found")
     );
     println!();
-    for replacement in replacements.clone() {
+    for replacement in &replacements {
         println!("{}", Colour::Green.paint(replacement.to_string()));
     }
     println!();
@@ -148,7 +147,7 @@ fn main() -> anyhow::Result<()> {
         .with_prompt("Execute these renames?")
         .interact()?
     {
-        for replacement in replacements {
+        for replacement in &replacements {
             if let Some(cmd) = matches.value_of("rename-command") {
                 subprocess::Exec::shell(format!(
                     "{} {} {}",
@@ -156,7 +155,7 @@ fn main() -> anyhow::Result<()> {
                 ))
                 .join()?;
             } else {
-                fs::rename(replacement.original, replacement.new)?; // Rename a.txt to b.txt
+                fs::rename(&replacement.original, &replacement.new)?; // Rename a.txt to b.txt
             }
         }
     } else {
