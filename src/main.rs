@@ -54,7 +54,7 @@ fn find_renames(old_lines: String, new_lines: String) -> Result<Vec<Rename>, Ren
     Ok(renames)
 }
 
-fn prim() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     let matches = App::new("renamer")
                           .version(clap::crate_version!())
                           .author("Marcus B. <me@mbuffett.com")
@@ -127,10 +127,4 @@ fn prim() -> anyhow::Result<()> {
         println!("Aborting")
     }
     Ok(())
-}
-
-fn main() {
-    if let Err(err) = prim() {
-        println!("{}", err);
-    }
 }
