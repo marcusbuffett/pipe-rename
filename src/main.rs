@@ -73,10 +73,6 @@ fn main() -> anyhow::Result<()> {
         io::stdin().read_to_string(&mut buffer)?;
         buffer
     };
-    if input.is_empty() {
-        println!("No input files. Aborting.");
-        return Ok("");
-    }
     let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     if input.is_empty() {
         println!("No input files. Aborting.");
