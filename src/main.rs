@@ -37,7 +37,7 @@ fn find_renames(old_lines: String, new_lines: String) -> Result<Vec<Rename>, Ren
     if old_lines.clone().count() != new_lines.clone().count() {
         return Err(RenamerError::UnequalLines);
     }
-    let renames: Vec<Rename> = old_lines
+    let renames: Vec<_> = old_lines
         .zip(new_lines)
         .filter_map(|(old, new)| {
             if old.eq(new) {
@@ -72,7 +72,7 @@ fn prim() -> anyhow::Result<&'static str> {
         io::stdin().read_to_string(&mut buffer)?;
         buffer
     };
-    let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+    let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
     {
         write!(tmpfile, "{}", input)?;
         let editor = env::var("EDITOR").unwrap_or("vim".to_string());
