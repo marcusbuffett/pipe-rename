@@ -33,13 +33,15 @@ pub enum RenamerError {
     UnequalLines,
 }
 
-fn find_renames(old_lines: String, new_lines: String) -> Result<Vec<Rename>, RenamerError> {
-    let old_lines = old_lines.lines();
-    let new_lines = new_lines.lines();
-    if old_lines.clone().count() != new_lines.clone().count() {
+fn find_renames(
+    old_lines: &Vec<String>,
+    new_lines: &Vec<String>,
+) -> Result<Vec<Rename>, RenamerError> {
+    if old_lines.iter().count() != new_lines.iter().count() {
         return Err(RenamerError::UnequalLines);
     }
     let renames: Vec<_> = old_lines
+        .iter()
         .zip(new_lines)
         .filter_map(|(old, new)| {
             if old.eq(new) {
@@ -68,19 +70,37 @@ fn main() -> anyhow::Result<()> {
                                .short("c")
                                .help("Optionally set a custom rename command, like 'git mv'")
                                )
+                          .arg(
+                              clap::Arg::with_name("files")
+                               .value_name("FILES")
+                               .multiple(true)
+                               .help("The files to rename")
+                               )
                           .get_matches();
-    let input = {
-        let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer)?;
-        buffer
-    };
     let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
-    if input.is_empty() {
-        println!("No input files. Aborting.");
-        return Ok(());
-    }
+    let input_files: Vec<String> = if let Some(files) = matches.values_of("files") {
+        files
+            .into_iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<String>>()
+            .clone()
+    } else {
+        let input = {
+            let mut buffer = String::new();
+            io::stdin().read_to_string(&mut buffer)?;
+            buffer
+        };
+        if input.is_empty() {
+            println!("No input files on stdin or as args. Aborting.");
+            return Ok(());
+        }
+        input
+            .lines()
+            .map(|f| f.to_string())
+            .collect::<Vec<String>>()
+    };
     {
-        write!(tmpfile, "{}", input)?;
+        write!(tmpfile, "{}", input_files.join("\n"))?;
         let editor = env::var("EDITOR").unwrap_or("vim".to_string());
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
         let child = Command::new(editor)
@@ -92,9 +112,11 @@ fn main() -> anyhow::Result<()> {
 
         child.wait_with_output()?;
     }
-    let old_lines = input;
-    let new_lines = fs::read_to_string(tmpfile)?;
-    let replacements = find_renames(old_lines, new_lines)?;
+    let new_files: Vec<String> = fs::read_to_string(tmpfile)?
+        .lines()
+        .map(|f| f.to_string())
+        .collect();
+    let replacements = find_renames(&input_files, &new_files)?;
     if replacements.is_empty() {
         println!("No replacements found");
         return Err(RenamerError::NoReplacementsFound.into());
