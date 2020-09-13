@@ -71,7 +71,7 @@ fn prim() -> anyhow::Result<&'static str> {
         let editor = env::var("EDITOR").unwrap_or("vim".to_string());
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
         let child = Command::new(editor)
-            .arg(tmpfile.path().to_str().unwrap().to_string())
+            .arg(tmpfile.path())
             .stdin(Stdio::piped())
             .stdout(Stdio::inherit())
             .spawn()
