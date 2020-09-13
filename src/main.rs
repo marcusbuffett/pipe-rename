@@ -80,7 +80,7 @@ fn main() -> anyhow::Result<()> {
     let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     if input.is_empty() {
         println!("No input files. Aborting.");
-        return Ok("");
+        return Ok(());
     }
     {
         write!(tmpfile, "{}", input)?;
