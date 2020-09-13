@@ -9,7 +9,6 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::process::Command;
-use std::process::Stdio;
 
 use thiserror::Error;
 
@@ -104,8 +103,6 @@ fn main() -> anyhow::Result<()> {
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
         let child = Command::new(editor)
             .arg(tmpfile.path())
-            .stdin(Stdio::inherit())
-            .stdout(Stdio::inherit())
             .spawn()
             .context("Failed to execute editor process")?;
 
