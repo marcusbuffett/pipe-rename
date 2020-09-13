@@ -1,6 +1,7 @@
 use ansi_term::Colour;
 use clap::App;
 
+use anyhow::Context;
 use dialoguer::Confirm;
 use std::env;
 use std::fmt::Display;
@@ -76,7 +77,7 @@ fn main() -> anyhow::Result<()> {
         println!("No input files. Aborting.");
         return Ok("");
     }
-    let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     {
         write!(tmpfile, "{}", input)?;
         let editor = env::var("EDITOR").unwrap_or("vim".to_string());
@@ -86,7 +87,7 @@ fn main() -> anyhow::Result<()> {
             .stdin(Stdio::piped())
             .stdout(Stdio::inherit())
             .spawn()
-            .expect("failed to execute process");
+            .context("Failed to execute editor process")?;
 
         child.wait_with_output()?;
     }
