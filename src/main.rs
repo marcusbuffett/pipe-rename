@@ -88,48 +88,45 @@ fn prim() -> anyhow::Result<()> {
     }
     let old_lines = input;
     let new_lines = fs::read_to_string(tmpfile)?;
-    let replacements = find_renames(old_lines, new_lines);
-    if let Ok(replacements) = replacements.clone() {
-        if replacements.is_empty() {
-            println!("No replacements found");
-            return Err(RenamerError::NoReplacementsFound.into());
-        }
-        println!();
-        println!(
-            "{}",
-            Colour::Yellow.paint("The following replacements were found")
-        );
-        println!();
-        for replacement in replacements.clone() {
-            println!("{}", Colour::Green.paint(replacement.to_string()));
-        }
-        println!();
-        if Confirm::new()
-            .with_prompt("Execute these renames?")
-            .interact()?
-        {
-            for replacement in replacements {
-                if let Some(val) = matches.value_of("rename-command") {
-                    // println!("{}", val);
-                    subprocess::Exec::shell(format!(
-                        "{} {} {}",
-                        val, replacement.original, replacement.new
-                    ))
-                    .join()?;
-                } else {
-                    fs::rename(replacement.original, replacement.new)?; // Rename a.txt to b.txt
-                }
-            }
-        } else {
-            println!("Aborting")
-        }
+    let replacements = find_renames(old_lines, new_lines)?;
+    if replacements.is_empty() {
+        println!("No replacements found");
+        return Err(RenamerError::NoReplacementsFound.into());
     }
-    if let Err(err) = replacements {
-        println!("{}", err);
+    println!();
+    println!(
+        "{}",
+        Colour::Yellow.paint("The following replacements were found")
+    );
+    println!();
+    for replacement in replacements.clone() {
+        println!("{}", Colour::Green.paint(replacement.to_string()));
+    }
+    println!();
+    if Confirm::new()
+        .with_prompt("Execute these renames?")
+        .interact()?
+    {
+        for replacement in replacements {
+            if let Some(val) = matches.value_of("rename-command") {
+                // println!("{}", val);
+                subprocess::Exec::shell(format!(
+                    "{} {} {}",
+                    val, replacement.original, replacement.new
+                ))
+                .join()?;
+            } else {
+                fs::rename(replacement.original, replacement.new)?; // Rename a.txt to b.txt
+            }
+        }
+    } else {
+        println!("Aborting")
     }
     Ok(())
 }
 
 fn main() {
-    prim();
+    if let Err(err) = prim() {
+        println!("{}", err);
+    }
 }
