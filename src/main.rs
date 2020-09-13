@@ -72,6 +72,10 @@ fn prim() -> anyhow::Result<&'static str> {
         io::stdin().read_to_string(&mut buffer)?;
         buffer
     };
+    if input.is_empty() {
+        println!("No input files. Aborting.");
+        return Ok("");
+    }
     let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
     {
         write!(tmpfile, "{}", input)?;
