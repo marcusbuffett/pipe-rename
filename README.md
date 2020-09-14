@@ -1,5 +1,7 @@
 # pipe-rename
 
+![build](https://github.com/marcusbuffett/pipe-rename/workflows/.github/workflows/rust.yml/badge.svg)
+
 `pipe-rename` takes a list of files as input, opens your \$EDITOR of choice, then
 renames those files accordingly.
 
