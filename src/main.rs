@@ -69,6 +69,12 @@ fn main() -> anyhow::Result<()> {
                                .help("Optionally set a custom rename command, like 'git mv'")
                                )
                           .arg(
+                              clap::Arg::with_name("yes")
+                               .long("yes")
+                               .short("y")
+                               .help("Answer all prompts with yes")
+                               )
+                          .arg(
                               clap::Arg::with_name("files")
                                .value_name("FILES")
                                .multiple(true)
@@ -132,9 +138,10 @@ fn main() -> anyhow::Result<()> {
         println!("{}", Colour::Green.paint(replacement.to_string()));
     }
     println!();
-    if Confirm::new()
-        .with_prompt("Execute these renames?")
-        .interact()?
+    if matches.is_present("yes")
+        || Confirm::new()
+            .with_prompt("Execute these renames?")
+            .interact()?
     {
         for replacement in &replacements {
             if let Some(cmd) = matches.value_of("rename-command") {
