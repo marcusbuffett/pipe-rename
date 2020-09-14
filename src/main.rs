@@ -79,10 +79,7 @@ fn main() -> anyhow::Result<()> {
                           .get_matches();
     let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     let input_files: Vec<String> = if let Some(files) = matches.values_of("files") {
-        files
-            .into_iter()
-            .map(|f| f.to_string())
-            .collect::<Vec<String>>()
+        files.map(|f| f.to_string()).collect()
     } else {
         let input = {
             let mut buffer = String::new();
@@ -93,10 +90,7 @@ fn main() -> anyhow::Result<()> {
             println!("No input files on stdin or as args. Aborting.");
             return Ok(());
         }
-        input
-            .lines()
-            .map(|f| f.to_string())
-            .collect::<Vec<String>>()
+        input.lines().map(|f| f.to_string()).collect()
     };
     {
         write!(tmpfile, "{}", input_files.join("\n"))?;
