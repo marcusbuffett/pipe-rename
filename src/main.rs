@@ -127,7 +127,7 @@ fn main() -> anyhow::Result<()> {
     }
     println!(
         "{}",
-        Colour::Yellow.paint("The following replacements were found")
+        Colour::Yellow.paint("The following replacements were found:")
     );
     println!();
     for replacement in &replacements {
