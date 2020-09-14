@@ -3,6 +3,8 @@ use clap::App;
 
 use anyhow::Context;
 use dialoguer::Confirm;
+use shell_escape::escape;
+use std::borrow::Cow;
 use std::env;
 use std::fmt::Display;
 use std::fs;
@@ -42,11 +44,11 @@ fn find_renames(
     let renames: Vec<_> = old_lines
         .into_iter()
         .zip(new_lines)
-        .filter_map(|(old, new)| {
-            if old == new {
+        .filter_map(|(original, new)| {
+            if original == new {
                 None
             } else {
-                Some(Rename { original: old, new })
+                Some(Rename { original, new })
             }
         })
         .collect();
@@ -105,7 +107,6 @@ fn main() -> anyhow::Result<()> {
         .collect();
     let replacements = find_renames(input_files, new_files)?;
     if replacements.is_empty() {
-        println!("No replacements found");
         return Err(RenamerError::NoReplacementsFound.into());
     }
     println!();
@@ -139,7 +140,9 @@ fn main() -> anyhow::Result<()> {
             if let Some(cmd) = matches.value_of("rename-command") {
                 subprocess::Exec::shell(format!(
                     "{} {} {}",
-                    cmd, replacement.original, replacement.new
+                    cmd,
+                    escape(Cow::from(replacement.original.clone())),
+                    escape(Cow::from(replacement.new.clone()))
                 ))
                 .join()?;
             } else {
