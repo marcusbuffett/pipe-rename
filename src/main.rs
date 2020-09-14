@@ -37,7 +37,7 @@ fn find_renames(
     old_lines: &Vec<String>,
     new_lines: &Vec<String>,
 ) -> Result<Vec<Rename>, RenamerError> {
-    if old_lines.iter().count() != new_lines.iter().count() {
+    if old_lines.len() != new_lines.len() {
         return Err(RenamerError::UnequalLines);
     }
     let renames: Vec<_> = old_lines
