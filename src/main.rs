@@ -34,23 +34,20 @@ pub enum RenamerError {
 }
 
 fn find_renames(
-    old_lines: &Vec<String>,
-    new_lines: &Vec<String>,
+    old_lines: Vec<String>,
+    new_lines: Vec<String>,
 ) -> Result<Vec<Rename>, RenamerError> {
-    if old_lines.iter().count() != new_lines.iter().count() {
+    if old_lines.len() != new_lines.len() {
         return Err(RenamerError::UnequalLines);
     }
     let renames: Vec<_> = old_lines
-        .iter()
+        .into_iter()
         .zip(new_lines)
         .filter_map(|(old, new)| {
-            if old.eq(new) {
+            if old == new {
                 None
             } else {
-                Some(Rename {
-                    original: old.to_string(),
-                    new: new.to_string(),
-                })
+                Some(Rename { original: old, new })
             }
         })
         .collect();
@@ -109,7 +106,7 @@ fn main() -> anyhow::Result<()> {
         .lines()
         .map(|f| f.to_string())
         .collect();
-    let replacements = find_renames(&input_files, &new_files)?;
+    let replacements = find_renames(input_files, new_files)?;
     if replacements.is_empty() {
         println!("No replacements found");
         return Err(RenamerError::NoReplacementsFound.into());
