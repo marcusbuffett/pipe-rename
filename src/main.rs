@@ -127,7 +127,7 @@ fn main() -> anyhow::Result<()> {
         .collect();
     if !replacements_over_existing_files.is_empty() {
         println!("The following replacements overwrite existing files:");
-        for replacement in &replacements {
+        for replacement in &replacements_over_existing_files {
             println!("{}", Colour::Green.paint(replacement.to_string()));
         }
         println!();
