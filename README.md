@@ -17,9 +17,26 @@ This will install the `renamer` binary.
 
 Usage is simple, just pipe a list of files into `renamer`. This will open your
 \$EDITOR (or vim, if not set), and once your editor exits it will detect which
-files were renamed.
+files were renamed:
 
-Helptext:
+```bash
+ls | renamer
+```
+
+You can also supply filenames as positional arguments. To rename txt files in the current directory:
+
+```bash
+renamer *.txt
+```
+
+The default behavior is to rename files, but you can override this. If you want
+to run `git mv old new` on each rename, you can do something like this:
+
+```bash
+ls | renamer --rename-command "git mv"
+```
+
+## Helptext
 
 ```
 Takes a list of files and renames/removes them, by piping them through an external editor
