@@ -25,14 +25,18 @@ Helptext:
 Takes a list of files and renames/removes them, by piping them through an external editor
 
 USAGE:
-    renamer [OPTIONS]
+    renamer [FLAGS] [OPTIONS] [FILES]...
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+    -y, --yes        Answer all prompts with yes
 
 OPTIONS:
     -c, --rename-command <COMMAND>    Optionally set a custom rename command, like 'git mv'
+
+ARGS:
+    <FILES>...    The files to rename
 ```
 
 ## Contributors ✨
