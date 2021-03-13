@@ -195,15 +195,21 @@ fn main() -> anyhow::Result<()> {
         Colour::Yellow.paint("The following replacements were found:")
     );
     println!();
-    for replacement in &replacements {
-        if matches.is_present("pretty-diff") {
-            println!("{}", replacement.pretty_diff());
-            println!(""); // FIXME: How to properly add blank lines between diffs?
-        } else {
+
+    if matches.is_present("pretty-diff") {
+        let diff_output = replacements
+            .iter()
+            .map(|repl| repl.pretty_diff().to_string())
+            .collect::<Vec<String>>()
+            .join("\n\n"); // leave a blank line between pretty file diffs
+        println!("{}", diff_output);
+    } else {
+        for replacement in &replacements {
             println!("{}", Colour::Green.paint(replacement.to_string()));
         }
     }
     println!();
+
     if matches.is_present("yes")
         || Confirm::new()
             .with_prompt("Execute these renames?")
