@@ -76,7 +76,7 @@ impl Rename {
     }
 }
 impl Display for Rename {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.plain_diff().fmt(f)
     }
 }

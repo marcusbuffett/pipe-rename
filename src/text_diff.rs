@@ -1,6 +1,6 @@
 use diff;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TextDiff {
     Removed(String),
     Unchanged(String),
@@ -38,4 +38,22 @@ pub fn calculate_text_diff(old: &str, new: &str) -> Vec<TextDiff> {
         }
     }
     text_changes
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_diff_works() {
+        let diff_changes = calculate_text_diff("old_file.txt", "newer_file.md");
+        assert_eq!(diff_changes, &[
+            // NOTE: removed is always first
+            TextDiff::Removed("old".to_owned()),
+            TextDiff::New("newer".to_owned()),
+            TextDiff::Unchanged("_file.".to_owned()),
+            TextDiff::Removed("txt".to_owned()),
+            TextDiff::New("md".to_owned()),
+        ]);
+    }
 }
