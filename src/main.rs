@@ -32,7 +32,7 @@ impl Rename {
 
                 // print old
                 write!(f, "{}", Colour::Red.paint("- "))?;
-                for change in diff_changes.iter() {
+                for change in &diff_changes {
                     match change {
                         TextDiff::Removed(old) => {
                             write!(f, "{}", Colour::Red.paint(old))?;
@@ -47,7 +47,7 @@ impl Rename {
 
                 // print new
                 write!(f, "{}", Colour::Green.paint("+ "))?;
-                for change in diff_changes.iter() {
+                for change in &diff_changes {
                     match change {
                         TextDiff::New(new) => {
                             write!(f, "{}", Colour::Green.paint(new))?;
