@@ -6,7 +6,7 @@ use dialoguer::Confirm;
 use shell_escape::escape;
 use std::borrow::Cow;
 use std::env;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
@@ -14,15 +14,70 @@ use std::process::Command;
 
 use thiserror::Error;
 
+mod text_diff;
+use text_diff::{calculate_text_diff, TextDiff};
+
 #[derive(Debug, Clone)]
 struct Rename {
     original: String,
     new: String,
 }
 
+impl Rename {
+    fn pretty_diff(&self) -> impl Display {
+        struct PrettyDiff(Rename);
+        impl Display for PrettyDiff {
+            fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+                let diff_changes = calculate_text_diff(&self.0.original, &self.0.new);
+
+                // print old
+                write!(f, "{}", Colour::Red.paint("- "))?;
+                for change in &diff_changes {
+                    match change {
+                        TextDiff::Removed(old) => {
+                            write!(f, "{}", Colour::Red.paint(old))?;
+                        },
+                        TextDiff::Unchanged(same) => {
+                            write!(f, "{}", same)?;
+                        },
+                        _ => (),
+                    }
+                }
+                writeln!(f)?;
+
+                // print new
+                write!(f, "{}", Colour::Green.paint("+ "))?;
+                for change in &diff_changes {
+                    match change {
+                        TextDiff::New(new) => {
+                            write!(f, "{}", Colour::Green.paint(new))?;
+                        },
+                        TextDiff::Unchanged(same) => {
+                            write!(f, "{}", same)?;
+                        },
+                        _ => (),
+                    }
+                }
+
+                Ok(())
+            }
+        }
+        PrettyDiff(self.clone())
+    }
+
+    fn plain_diff(&self) -> impl Display {
+        struct PlainDiff(Rename);
+        impl Display for PlainDiff {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{} -> {}", self.0.original, self.0.new)
+            }
+        }
+        PlainDiff(self.clone())
+    }
+}
 impl Display for Rename {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} -> {}", self.original, self.new)
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.plain_diff().fmt(f)
     }
 }
 
@@ -73,6 +128,12 @@ fn main() -> anyhow::Result<()> {
                                .long("yes")
                                .short("y")
                                .help("Answer all prompts with yes")
+                               )
+                          .arg(
+                              clap::Arg::with_name("pretty-diff")
+                               .long("pretty-diff")
+                               .short("p")
+                               .help("Prettify diffs")
                                )
                           .arg(
                               clap::Arg::with_name("files")
@@ -134,10 +195,21 @@ fn main() -> anyhow::Result<()> {
         Colour::Yellow.paint("The following replacements were found:")
     );
     println!();
-    for replacement in &replacements {
-        println!("{}", Colour::Green.paint(replacement.to_string()));
+
+    if matches.is_present("pretty-diff") {
+        let diff_output = replacements
+            .iter()
+            .map(|repl| repl.pretty_diff().to_string())
+            .collect::<Vec<String>>()
+            .join("\n\n"); // leave a blank line between pretty file diffs
+        println!("{}", diff_output);
+    } else {
+        for replacement in &replacements {
+            println!("{}", Colour::Green.paint(replacement.to_string()));
+        }
     }
     println!();
+
     if matches.is_present("yes")
         || Confirm::new()
             .with_prompt("Execute these renames?")
