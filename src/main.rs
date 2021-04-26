@@ -1,7 +1,7 @@
 use ansi_term::Colour;
-use clap::App;
+use clap::{App, ArgMatches, Values};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use dialoguer::Confirm;
 use shell_escape::escape;
 use std::borrow::Cow;
@@ -11,6 +11,7 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::process::Command;
+use tempfile::NamedTempFile;
 
 use thiserror::Error;
 
@@ -111,72 +112,69 @@ fn find_renames(
     Ok(renames)
 }
 
-fn main() -> anyhow::Result<()> {
-    let matches = App::new("renamer")
-                          .version(clap::crate_version!())
-                          .author("Marcus B. <me@mbuffett.com")
-                          .about("Takes a list of files and renames/removes them, by piping them through an external editor")
-                          .arg(
-                              clap::Arg::with_name("rename-command")
-                               .value_name("COMMAND")
-                               .long("rename-command")
-                               .short("c")
-                               .help("Optionally set a custom rename command, like 'git mv'")
-                               )
-                          .arg(
-                              clap::Arg::with_name("yes")
-                               .long("yes")
-                               .short("y")
-                               .help("Answer all prompts with yes")
-                               )
-                          .arg(
-                              clap::Arg::with_name("pretty-diff")
-                               .long("pretty-diff")
-                               .short("p")
-                               .help("Prettify diffs")
-                               )
-                          .arg(
-                              clap::Arg::with_name("files")
-                               .value_name("FILES")
-                               .multiple(true)
-                               .help("The files to rename")
-                               )
-                          .get_matches();
-    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
-    let input_files: Vec<String> = if let Some(files) = matches.values_of("files") {
-        files.map(|f| f.to_string()).collect()
-    } else {
-        let input = {
-            let mut buffer = String::new();
-            io::stdin().read_to_string(&mut buffer)?;
-            buffer
-        };
-        if input.is_empty() {
-            println!("No input files on stdin or as args. Aborting.");
-            return Ok(());
-        }
-        input.lines().map(|f| f.to_string()).collect()
-    };
-    {
-        write!(tmpfile, "{}", input_files.join("\n"))?;
-        let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-        tmpfile.seek(SeekFrom::Start(0)).unwrap();
-        let child = Command::new(editor)
-            .arg(tmpfile.path())
-            .spawn()
-            .context("Failed to execute editor process")?;
+fn get_matches() -> ArgMatches<'static> {
+    App::new("renamer")
+            .version(clap::crate_version!())
+            .author("Marcus B. <me@mbuffett.com")
+            .about("Takes a list of files and renames/removes them, by piping them through an external editor")
+            .arg(
+                clap::Arg::with_name("rename-command")
+                 .value_name("COMMAND")
+                 .long("rename-command")
+                 .short("c")
+                 .help("Optionally set a custom rename command, like 'git mv'")
+                 )
+            .arg(
+                clap::Arg::with_name("yes")
+                 .long("yes")
+                 .short("y")
+                 .help("Answer all prompts with yes")
+                 )
+            .arg(
+                clap::Arg::with_name("pretty-diff")
+                 .long("pretty-diff")
+                 .short("p")
+                 .help("Prettify diffs")
+                 )
+            .arg(
+                clap::Arg::with_name("files")
+                 .value_name("FILES")
+                 .multiple(true)
+                 .help("The files to rename")
+                 )
+            .get_matches()
+}
 
-        child.wait_with_output()?;
+fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
+    if let Some(files) = files {
+        return Ok(files.map(|f| f.to_string()).collect());
     }
-    let new_files: Vec<String> = fs::read_to_string(tmpfile)?
-        .lines()
-        .map(|f| f.to_string())
-        .collect();
-    let replacements = find_renames(input_files, new_files)?;
-    if replacements.is_empty() {
-        return Err(RenamerError::NoReplacementsFound.into());
+
+    let input = {
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+        buffer
+    };
+    if input.is_empty() {
+        return Err(anyhow!("No input files on stdin or as args. Aborting."));
     }
-    println!();
+    return Ok(input.lines().map(|f| f.to_string()).collect());
+}
+
+fn open_editor(tmpfile: &mut NamedTempFile, input_files: &Vec<String>) -> anyhow::Result<()> {
+    write!(tmpfile, "{}", input_files.join("\n"))?;
+    let editor = env::var("EDITOR").unwrap_or("vim".to_string());
+    tmpfile.seek(SeekFrom::Start(0)).unwrap();
+    let child = Command::new(editor)
+        .arg(tmpfile.path())
+        .spawn()
+        .context("Failed to execute editor process")?;
+
+    child.wait_with_output()?;
+    Ok(())
+}
+
+fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
     let replacements_over_existing_files: Vec<_> = replacements
         .iter()
         .filter(|replacement| Path::new(&replacement.new).exists())
@@ -187,16 +185,20 @@ fn main() -> anyhow::Result<()> {
             println!("{}", Colour::Green.paint(replacement.to_string()));
         }
         println!();
-        println!("Refusing to overwrite existing files. Aborting.");
-        return Ok(());
+        return Err(anyhow!("Refusing to overwrite existing files. Aborting."));
     }
+
+    Ok(())
+}
+
+fn print_replacements(replacements: &Vec<Rename>, pretty: bool) {
     println!(
         "{}",
         Colour::Yellow.paint("The following replacements were found:")
     );
     println!();
 
-    if matches.is_present("pretty-diff") {
+    if pretty {
         let diff_output = replacements
             .iter()
             .map(|repl| repl.pretty_diff().to_string())
@@ -204,32 +206,59 @@ fn main() -> anyhow::Result<()> {
             .join("\n\n"); // leave a blank line between pretty file diffs
         println!("{}", diff_output);
     } else {
-        for replacement in &replacements {
+        for replacement in replacements {
             println!("{}", Colour::Green.paint(replacement.to_string()));
         }
     }
     println!();
+}
+
+fn execute_renames(replacements: &Vec<Rename>, rename_command: Option<&str>) -> anyhow::Result<()> {
+    for replacement in replacements {
+        if let Some(cmd) = rename_command {
+            subprocess::Exec::shell(format!(
+                    "{} {} {}",
+                    cmd,
+                    escape(Cow::from(replacement.original.clone())),
+                    escape(Cow::from(replacement.new.clone()))
+            )).join()?;
+        } else {
+            fs::rename(&replacement.original, &replacement.new)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    let matches = get_matches();
+    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
+
+    let input_files = get_input_files(matches.values_of("files"))?;
+    open_editor(&mut tmpfile, &input_files)?;
+
+    let new_files: Vec<String> = fs::read_to_string(tmpfile)?
+        .lines()
+        .map(|f| f.to_string())
+        .collect();
+    let replacements = find_renames(input_files, new_files)?;
+    if replacements.is_empty() {
+        return Err(RenamerError::NoReplacementsFound.into());
+    }
+    println!();
+
+    check_for_existing_files(&replacements)?;
+    print_replacements(&replacements, matches.is_present("pretty-diff"));
 
     if matches.is_present("yes")
         || Confirm::new()
             .with_prompt("Execute these renames?")
             .interact()?
     {
-        for replacement in &replacements {
-            if let Some(cmd) = matches.value_of("rename-command") {
-                subprocess::Exec::shell(format!(
-                    "{} {} {}",
-                    cmd,
-                    escape(Cow::from(replacement.original.clone())),
-                    escape(Cow::from(replacement.new.clone()))
-                ))
-                .join()?;
-            } else {
-                fs::rename(&replacement.original, &replacement.new)?; // Rename a.txt to b.txt
-            }
-        }
+        execute_renames(&replacements, matches.value_of("rename-command"))?;
     } else {
         println!("Aborting")
     }
+
     Ok(())
 }
