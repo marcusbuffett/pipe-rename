@@ -6,9 +6,9 @@ use run::{run_with_env, TestCase, EMPTY};
 fn test_no_input() -> anyhow::Result<()> {
     let assert = run_with_env(EMPTY, EMPTY)?;
     assert
-        .success()
-        .stdout("No input files on stdin or as args. Aborting.\n")
-        .stderr("");
+        .failure()
+        .stdout("")
+        .stderr("Error: No input files on stdin or as args. Aborting.\n");
     Ok(())
 }
 
@@ -39,7 +39,9 @@ fn test_rename() -> anyhow::Result<()> {
     test_case.replace("2", "3")?;
 
     let assert = test_case.run()?;
-    assert.success().stderr("");
+    assert
+        .failure()
+        .stderr("Error: Refusing to overwrite existing files. Aborting.\n");
 
     // TODO: assert stdout
     // TODO: assert that nothing has been renamed
