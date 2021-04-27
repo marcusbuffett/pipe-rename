@@ -39,6 +39,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "bew",
+      "name": "Benoit de Chezelles",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9730330?v=4",
+      "profile": "https://github.com/bew",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7
