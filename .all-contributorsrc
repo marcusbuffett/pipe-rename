@@ -30,6 +30,15 @@
         "code",
         "bug"
       ]
+    },
+    {
+      "login": "mtimkovich",
+      "name": "Max Timkovich",
+      "avatar_url": "https://avatars.githubusercontent.com/u/651077?v=4",
+      "profile": "https://timkovi.ch/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7

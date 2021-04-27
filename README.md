@@ -65,6 +65,7 @@ ARGS:
   <tr>
     <td align="center"><a href="https://mbuffett.com/"><img src="https://avatars3.githubusercontent.com/u/1834328?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcus Buffett</b></sub></a><br /><a href="#ideas-marcusbuffett" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/marcusbuffett/pipe-rename/commits?author=marcusbuffett" title="Code">💻</a></td>
     <td align="center"><a href="https://git.ireas.org/"><img src="https://avatars2.githubusercontent.com/u/165115?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Robin Krahl</b></sub></a><br /><a href="#ideas-robinkrahl" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/marcusbuffett/pipe-rename/commits?author=robinkrahl" title="Code">💻</a> <a href="https://github.com/marcusbuffett/pipe-rename/issues?q=author%3Arobinkrahl" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://timkovi.ch/"><img src="https://avatars.githubusercontent.com/u/651077?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Max Timkovich</b></sub></a><br /><a href="https://github.com/marcusbuffett/pipe-rename/commits?author=mtimkovich" title="Code">💻</a></td>
   </tr>
 </table>
 
