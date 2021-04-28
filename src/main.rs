@@ -2,7 +2,7 @@ use ansi_term::Colour;
 use clap::{App, ArgMatches, Values};
 
 use anyhow::{anyhow, Context};
-use dialoguer::Confirm;
+use dialoguer::Select;
 use shell_escape::escape;
 use std::borrow::Cow;
 use std::env;
@@ -11,7 +11,7 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::process::Command;
-use tempfile::NamedTempFile;
+use tempfile;
 
 use thiserror::Error;
 
@@ -91,8 +91,8 @@ pub enum RenamerError {
 }
 
 fn find_renames(
-    old_lines: Vec<String>,
-    new_lines: Vec<String>,
+    old_lines: &Vec<String>,
+    new_lines: &Vec<String>,
 ) -> Result<Vec<Rename>, RenamerError> {
     if old_lines.len() != new_lines.len() {
         return Err(RenamerError::UnequalLines);
@@ -104,10 +104,17 @@ fn find_renames(
             if original == new {
                 None
             } else {
-                Some(Rename { original, new })
+                Some(Rename {
+                    original: original.to_string(),
+                    new: new.to_string()
+                })
             }
         })
         .collect();
+
+    if renames.is_empty() {
+        return Err(RenamerError::NoReplacementsFound.into());
+    }
 
     Ok(renames)
 }
@@ -116,7 +123,7 @@ fn get_matches() -> ArgMatches<'static> {
     App::new("renamer")
             .version(clap::crate_version!())
             .author("Marcus B. <me@mbuffett.com")
-            .about("Takes a list of files and renames/removes them, by piping them through an external editor")
+            .about("Takes a list of files and renames/moves them, by piping them through an external editor")
             .arg(
                 clap::Arg::with_name("rename-command")
                  .value_name("COMMAND")
@@ -161,17 +168,22 @@ fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
     return Ok(input.lines().map(|f| f.to_string()).collect());
 }
 
-fn open_editor(tmpfile: &mut NamedTempFile, input_files: &Vec<String>) -> anyhow::Result<()> {
+fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
+    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     write!(tmpfile, "{}", input_files.join("\n"))?;
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-    tmpfile.seek(SeekFrom::Start(0)).unwrap();
+    tmpfile.seek(SeekFrom::Start(0))?;
     let child = Command::new(editor)
         .arg(tmpfile.path())
         .spawn()
         .context("Failed to execute editor process")?;
 
     child.wait_with_output()?;
-    Ok(())
+
+    Ok(fs::read_to_string(&tmpfile)?
+        .lines()
+        .map(|f| f.to_string())
+        .collect::<Vec<String>>())
 }
 
 fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
@@ -230,34 +242,48 @@ fn execute_renames(replacements: &Vec<Rename>, rename_command: Option<&str>) -> 
     Ok(())
 }
 
+fn prompt(yes: bool) -> anyhow::Result<&'static str> {
+    let selections = vec!["Yes", "No", "Edit", "Reset"];
+
+    if yes {
+        return Ok(selections[0]);
+    }
+
+    let selection = Select::new()
+        .with_prompt("Execute these renames?")
+        .default(0)
+        .items(&selections)
+        .interact()?;
+
+    Ok(selections[selection])
+}
+
 fn main() -> anyhow::Result<()> {
     let matches = get_matches();
-    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
-
     let input_files = get_input_files(matches.values_of("files"))?;
-    open_editor(&mut tmpfile, &input_files)?;
+    let mut buffer = input_files.clone();
 
-    let new_files: Vec<String> = fs::read_to_string(tmpfile)?
-        .lines()
-        .map(|f| f.to_string())
-        .collect();
-    let replacements = find_renames(input_files, new_files)?;
-    if replacements.is_empty() {
-        return Err(RenamerError::NoReplacementsFound.into());
-    }
-    println!();
+    loop {
+        let new_files = open_editor(&buffer)?;
+        let replacements = find_renames(&input_files, &new_files)?;
+        println!();
 
-    check_for_existing_files(&replacements)?;
-    print_replacements(&replacements, matches.is_present("pretty-diff"));
+        check_for_existing_files(&replacements)?;
+        print_replacements(&replacements, matches.is_present("pretty-diff"));
 
-    if matches.is_present("yes")
-        || Confirm::new()
-            .with_prompt("Execute these renames?")
-            .interact()?
-    {
-        execute_renames(&replacements, matches.value_of("rename-command"))?;
-    } else {
-        println!("Aborting")
+        match prompt(matches.is_present("yes"))? {
+            "Yes" => {
+                execute_renames(&replacements, matches.value_of("rename-command"))?;
+                break;
+            },
+            "No" => {
+                println!("Aborting");
+                break;
+            },
+            "Edit" => buffer = new_files.clone(),
+            "Reset" => buffer = input_files.clone(),
+            _ => unreachable!(),
+        }
     }
 
     Ok(())
