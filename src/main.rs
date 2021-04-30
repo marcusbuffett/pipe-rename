@@ -154,7 +154,7 @@ fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
 fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
     let mut input_files = get_input(files)?;
     // This is a special case where we want to expand `.` and `..`.
-    let dots = vec![".", ".."];
+    let dots = &[".", ".."];
     if input_files.len() == 1 && dots.contains(&input_files[0].as_str()) {
         input_files = expand_dir(&input_files[0])?;
     }
