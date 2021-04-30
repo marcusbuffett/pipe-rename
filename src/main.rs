@@ -113,7 +113,7 @@ fn find_renames(
         .collect();
 
     if renames.is_empty() {
-        return Err(RenamerError::NoReplacementsFound.into());
+        return Err(RenamerError::NoReplacementsFound);
     }
 
     Ok(renames)
@@ -122,7 +122,7 @@ fn find_renames(
 fn get_matches() -> ArgMatches<'static> {
     App::new("renamer")
             .version(clap::crate_version!())
-            .author("Marcus B. <me@mbuffett.com")
+            .author("Marcus B. <me@mbuffett.com>")
             .about("Takes a list of files and renames/moves them, by piping them through an external editor")
             .arg(
                 clap::Arg::with_name("rename-command")
@@ -152,7 +152,7 @@ fn get_matches() -> ArgMatches<'static> {
             .get_matches()
 }
 
-fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
+fn get_input(files: Option<Values>) -> anyhow::Result<Vec<String>> {
     if let Some(files) = files {
         return Ok(files.map(|f| f.to_string()).collect());
     }
@@ -162,10 +162,37 @@ fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
         io::stdin().read_to_string(&mut buffer)?;
         buffer
     };
-    if input.is_empty() {
+    return Ok(input.lines().map(|f| f.to_string()).collect());
+}
+
+fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
+    let mut input_files = get_input(files)?;
+    // This is a special case where we want to dive into
+    // a directory if it's the only argument.
+    if input_files.len() == 1 && is_dir(&input_files[0]) {
+        input_files = expand_dir(&input_files[0])?;
+    }
+    if input_files.is_empty() {
         return Err(anyhow!("No input files on stdin or as args. Aborting."));
     }
-    return Ok(input.lines().map(|f| f.to_string()).collect());
+
+    Ok(input_files)
+}
+
+fn is_dir(path: &str) -> bool {
+    match fs::metadata(&path) {
+        Ok(stat) => stat.is_dir(),
+        _ => false
+    }
+}
+
+fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
+    Ok(fs::read_dir(path)?
+        .flatten()
+        .filter_map(|e| e.path()
+                .into_os_string()
+                .into_string().ok())
+        .collect())
 }
 
 fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
@@ -183,7 +210,7 @@ fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
     Ok(fs::read_to_string(&tmpfile)?
         .lines()
         .map(|f| f.to_string())
-        .collect::<Vec<String>>())
+        .collect())
 }
 
 fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {

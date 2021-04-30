@@ -48,3 +48,13 @@ fn test_rename() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_dot() -> anyhow::Result<()> {
+    let mut test_case = TestCase::new()?;
+    let err = test_case.replace(".", ".");
+
+    assert!(err.is_err());
+
+    Ok(())
+}
