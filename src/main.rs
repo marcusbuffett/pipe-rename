@@ -129,13 +129,13 @@ fn find_renames(
         .collect();
 
     if renames.is_empty() {
-        return Err(RenamerError::NoReplacementsFound.into());
+        return Err(RenamerError::NoReplacementsFound);
     }
 
     Ok(renames)
 }
 
-fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
+fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
     if !files.is_empty() {
         return Ok(files);
     }
@@ -149,6 +149,29 @@ fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
         return Err(anyhow!("No input files on stdin or as args. Aborting."));
     }
     return Ok(input.lines().map(|f| f.to_string()).collect());
+}
+
+fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
+    let mut input_files = get_input(files)?;
+    // This is a special case where we want to expand `.` and `..`.
+    let dots = vec![".", ".."];
+    if input_files.len() == 1 && dots.contains(&input_files[0].as_str()) {
+        input_files = expand_dir(&input_files[0])?;
+    }
+    if input_files.is_empty() {
+        return Err(anyhow!("No input files on stdin or as args. Aborting."));
+    }
+
+    Ok(input_files)
+}
+
+fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
+    Ok(fs::read_dir(path)?
+        .flatten()
+        .filter_map(|e| e.path()
+                .into_os_string()
+                .into_string().ok())
+        .collect())
 }
 
 fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
@@ -166,7 +189,7 @@ fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
     Ok(fs::read_to_string(&tmpfile)?
         .lines()
         .map(|f| f.to_string())
-        .collect::<Vec<String>>())
+        .collect())
 }
 
 fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
