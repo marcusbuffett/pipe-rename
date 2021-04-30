@@ -1,5 +1,5 @@
+use clap::Clap;
 use ansi_term::Colour;
-use clap::{App, ArgMatches, Values};
 
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
@@ -22,6 +22,22 @@ use text_diff::{calculate_text_diff, TextDiff};
 struct Rename {
     original: String,
     new: String,
+}
+
+#[derive(Clap)]
+#[clap(version = "1.2", author = "Marcus B. <me@mbufett.com>", about = "https://github.com/marcusbuffett/pipe-rename")]
+struct Opts {
+    #[clap(name = "FILES")]
+    files: Vec<String>,
+    /// Optionally set a custom rename command, like 'git mv'
+    #[clap(short, long)]
+    rename_command: Option<String>,
+    /// Prettify diffs
+    #[clap(short, long)]
+    pretty_diff: bool,
+    /// Answer all prompts with yes
+    #[clap(short = 'y', long = "yes")]
+    assume_yes: bool,
 }
 
 impl Rename {
@@ -119,42 +135,9 @@ fn find_renames(
     Ok(renames)
 }
 
-fn get_matches() -> ArgMatches<'static> {
-    App::new("renamer")
-            .version(clap::crate_version!())
-            .author("Marcus B. <me@mbuffett.com")
-            .about("Takes a list of files and renames/moves them, by piping them through an external editor")
-            .arg(
-                clap::Arg::with_name("rename-command")
-                 .value_name("COMMAND")
-                 .long("rename-command")
-                 .short("c")
-                 .help("Optionally set a custom rename command, like 'git mv'")
-                 )
-            .arg(
-                clap::Arg::with_name("yes")
-                 .long("yes")
-                 .short("y")
-                 .help("Answer all prompts with yes")
-                 )
-            .arg(
-                clap::Arg::with_name("pretty-diff")
-                 .long("pretty-diff")
-                 .short("p")
-                 .help("Prettify diffs")
-                 )
-            .arg(
-                clap::Arg::with_name("files")
-                 .value_name("FILES")
-                 .multiple(true)
-                 .help("The files to rename")
-                 )
-            .get_matches()
-}
-
-fn get_input_files(files: Option<Values>) -> anyhow::Result<Vec<String>> {
-    if let Some(files) = files {
-        return Ok(files.map(|f| f.to_string()).collect());
+fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
+    if !files.is_empty() {
+        return Ok(files);
     }
 
     let input = {
@@ -225,9 +208,9 @@ fn print_replacements(replacements: &Vec<Rename>, pretty: bool) {
     println!();
 }
 
-fn execute_renames(replacements: &Vec<Rename>, rename_command: Option<&str>) -> anyhow::Result<()> {
+fn execute_renames(replacements: &Vec<Rename>, rename_command: Option<String>) -> anyhow::Result<()> {
     for replacement in replacements {
-        if let Some(cmd) = rename_command {
+        if let Some(ref cmd) = rename_command {
             subprocess::Exec::shell(format!(
                     "{} {} {}",
                     cmd,
@@ -259,8 +242,8 @@ fn prompt(yes: bool) -> anyhow::Result<&'static str> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let matches = get_matches();
-    let input_files = get_input_files(matches.values_of("files"))?;
+    let opts = Opts::parse();
+    let input_files = get_input_files(opts.files)?;
     let mut buffer = input_files.clone();
 
     loop {
@@ -269,11 +252,11 @@ fn main() -> anyhow::Result<()> {
         println!();
 
         check_for_existing_files(&replacements)?;
-        print_replacements(&replacements, matches.is_present("pretty-diff"));
+        print_replacements(&replacements, opts.pretty_diff);
 
-        match prompt(matches.is_present("yes"))? {
+        match prompt(opts.assume_yes)? {
             "Yes" => {
-                execute_renames(&replacements, matches.value_of("rename-command"))?;
+                execute_renames(&replacements, opts.rename_command)?;
                 break;
             },
             "No" => {

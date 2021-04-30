@@ -1,5 +1,3 @@
-use diff;
-
 #[derive(Debug, PartialEq)]
 pub enum TextDiff {
     Removed(String),
