@@ -167,10 +167,10 @@ fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
 
 fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
     Ok(fs::read_dir(path)?
-        .flatten()
-        .filter_map(|e| e.path()
+        .filter_map(|e| e.ok()
+            .and_then(|e| e.path()
                 .into_os_string()
-                .into_string().ok())
+                .into_string().ok()))
         .collect())
 }
 
