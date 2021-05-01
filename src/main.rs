@@ -184,7 +184,10 @@ fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
         .spawn()
         .context("Failed to execute editor process")?;
 
-    child.wait_with_output()?;
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        return Err(anyhow!("Editor terminated unexpectedly. Aborting."));
+    }
 
     Ok(fs::read_to_string(&tmpfile)?
         .lines()
