@@ -1,5 +1,5 @@
-use clap::Clap;
 use ansi_term::Colour;
+use clap::Clap;
 
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
@@ -25,7 +25,11 @@ struct Rename {
 }
 
 #[derive(Clap)]
-#[clap(version = "1.2", author = "Marcus B. <me@mbufett.com>", about = "https://github.com/marcusbuffett/pipe-rename")]
+#[clap(
+    version = "1.2",
+    author = "Marcus B. <me@mbufett.com>",
+    about = "https://github.com/marcusbuffett/pipe-rename"
+)]
 struct Opts {
     #[clap(name = "FILES")]
     files: Vec<String>,
@@ -53,10 +57,10 @@ impl Rename {
                     match change {
                         TextDiff::Removed(old) => {
                             write!(f, "{}", Colour::Red.paint(old))?;
-                        },
+                        }
                         TextDiff::Unchanged(same) => {
                             write!(f, "{}", same)?;
-                        },
+                        }
                         _ => (),
                     }
                 }
@@ -68,10 +72,10 @@ impl Rename {
                     match change {
                         TextDiff::New(new) => {
                             write!(f, "{}", Colour::Green.paint(new))?;
-                        },
+                        }
                         TextDiff::Unchanged(same) => {
                             write!(f, "{}", same)?;
-                        },
+                        }
                         _ => (),
                     }
                 }
@@ -122,7 +126,7 @@ fn find_renames(
             } else {
                 Some(Rename {
                     original: original.to_string(),
-                    new: new.to_string()
+                    new: new.to_string(),
                 })
             }
         })
@@ -167,10 +171,10 @@ fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
 
 fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
     Ok(fs::read_dir(path)?
-        .filter_map(|e| e.ok()
-            .and_then(|e| e.path()
-                .into_os_string()
-                .into_string().ok()))
+        .filter_map(|e| {
+            e.ok()
+                .and_then(|e| e.path().into_os_string().into_string().ok())
+        })
         .collect())
 }
 
@@ -234,15 +238,19 @@ fn print_replacements(replacements: &Vec<Rename>, pretty: bool) {
     println!();
 }
 
-fn execute_renames(replacements: &Vec<Rename>, rename_command: Option<String>) -> anyhow::Result<()> {
+fn execute_renames(
+    replacements: &Vec<Rename>,
+    rename_command: Option<String>,
+) -> anyhow::Result<()> {
     for replacement in replacements {
         if let Some(ref cmd) = rename_command {
             subprocess::Exec::shell(format!(
-                    "{} {} {}",
-                    cmd,
-                    escape(Cow::from(replacement.original.clone())),
-                    escape(Cow::from(replacement.new.clone()))
-            )).join()?;
+                "{} {} {}",
+                cmd,
+                escape(Cow::from(replacement.original.clone())),
+                escape(Cow::from(replacement.new.clone()))
+            ))
+            .join()?;
         } else {
             fs::rename(&replacement.original, &replacement.new)?;
         }
@@ -284,11 +292,11 @@ fn main() -> anyhow::Result<()> {
             "Yes" => {
                 execute_renames(&replacements, opts.rename_command)?;
                 break;
-            },
+            }
             "No" => {
                 println!("Aborting");
                 break;
-            },
+            }
             "Edit" => buffer = new_files.clone(),
             "Reset" => buffer = input_files.clone(),
             _ => unreachable!(),

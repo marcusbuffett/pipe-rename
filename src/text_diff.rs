@@ -18,21 +18,21 @@ pub fn calculate_text_diff(old: &str, new: &str) -> Vec<TextDiff> {
                 } else {
                     text_changes.push(TextDiff::Removed(String::from(l)))
                 }
-            },
+            }
             diff::Result::Both(b, _) => {
                 if let Some(TextDiff::Unchanged(unchanged)) = text_changes.last_mut() {
                     unchanged.push(b)
                 } else {
                     text_changes.push(TextDiff::Unchanged(String::from(b)))
                 }
-            },
+            }
             diff::Result::Right(r) => {
                 if let Some(TextDiff::New(new)) = text_changes.last_mut() {
                     new.push(r)
                 } else {
                     text_changes.push(TextDiff::New(String::from(r)))
                 }
-            },
+            }
         }
     }
     text_changes
@@ -45,13 +45,16 @@ mod tests {
     #[test]
     fn text_diff_works() {
         let diff_changes = calculate_text_diff("old_file.txt", "newer_file.md");
-        assert_eq!(diff_changes, &[
-            // NOTE: removed is always first
-            TextDiff::Removed("old".to_owned()),
-            TextDiff::New("newer".to_owned()),
-            TextDiff::Unchanged("_file.".to_owned()),
-            TextDiff::Removed("txt".to_owned()),
-            TextDiff::New("md".to_owned()),
-        ]);
+        assert_eq!(
+            diff_changes,
+            &[
+                // NOTE: removed is always first
+                TextDiff::Removed("old".to_owned()),
+                TextDiff::New("newer".to_owned()),
+                TextDiff::Unchanged("_file.".to_owned()),
+                TextDiff::Removed("txt".to_owned()),
+                TextDiff::New("md".to_owned()),
+            ]
+        );
     }
 }
