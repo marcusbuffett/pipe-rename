@@ -34,7 +34,7 @@ struct Opts {
     #[clap(name = "FILES")]
     files: Vec<String>,
     /// Optionally set a custom rename command, like 'git mv'
-    #[clap(short, long)]
+    #[clap(short = 'c', long)]
     rename_command: Option<String>,
     /// Prettify diffs
     #[clap(short, long)]
