@@ -36,7 +36,7 @@ pub fn run_with_env(
 
     if create_inputs {
         for file in &input {
-            fs::File::create(tempdir.path().join(file))?;
+            let _ = fs::File::create(tempdir.path().join(file));
         }
     }
 

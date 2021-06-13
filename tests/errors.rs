@@ -52,11 +52,11 @@ fn test_rename() -> anyhow::Result<()> {
 #[test]
 #[should_panic(expected = "assertion failed: `(left == right)`")]
 fn test_dot() {
-    let _ = run_with_env(&["."], &["."], false);
+    let _ = run_with_env(&["."], &["."], true);
 }
 
 #[test]
 #[should_panic(expected = "assertion failed: `(left == right)`")]
 fn test_dotdot() {
-    let _ = run_with_env(&[".."], &[".."], false);
+    let _ = run_with_env(&[".."], &[".."], true);
 }
