@@ -216,6 +216,21 @@ fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
+    let nonexisting_files : Vec<_> = input_files.iter().filter(|input_file| !Path::new(input_file).exists()).collect();
+
+    if !nonexisting_files.is_empty() {
+        println!("The following input files do not exist:");
+        for file in nonexisting_files {
+            println!("{}", Colour::Green.paint(file));
+        }
+        println!();
+        return Err(anyhow!("Nonexisting input files. Aborting."))
+    }
+
+    Ok(())
+}
+
 fn print_replacements(replacements: &Vec<Rename>, pretty: bool) {
     println!(
         "{}",
@@ -278,6 +293,9 @@ fn prompt(yes: bool) -> anyhow::Result<&'static str> {
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
     let input_files = get_input_files(opts.files)?;
+
+    check_input_files(&input_files)?;
+
     let mut buffer = input_files.clone();
 
     loop {
