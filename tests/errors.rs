@@ -4,7 +4,7 @@ use run::{run_with_env, TestCase, EMPTY};
 
 #[test]
 fn test_no_input() -> anyhow::Result<()> {
-    let assert = run_with_env(EMPTY, EMPTY)?;
+    let assert = run_with_env(EMPTY, EMPTY, true)?;
     assert
         .failure()
         .stdout("")
@@ -14,7 +14,7 @@ fn test_no_input() -> anyhow::Result<()> {
 
 #[test]
 fn test_no_replacements() -> anyhow::Result<()> {
-    let assert = run_with_env(&["test-1"], &["test-1"])?;
+    let assert = run_with_env(&["test-1"], &["test-1"], true)?;
     assert
         .failure()
         .stdout("")
@@ -24,7 +24,7 @@ fn test_no_replacements() -> anyhow::Result<()> {
 
 #[test]
 fn test_unequal_lines() -> anyhow::Result<()> {
-    let assert = run_with_env(&["test-1", "test-2"], &["test-3"])?;
+    let assert = run_with_env(&["test-1", "test-2"], &["test-3"], true)?;
     assert
         .failure()
         .stdout("")
@@ -52,11 +52,11 @@ fn test_rename() -> anyhow::Result<()> {
 #[test]
 #[should_panic(expected = "assertion failed: `(left == right)`")]
 fn test_dot() {
-    let _ = run_with_env(&["."], &["."]);
+    let _ = run_with_env(&["."], &["."], false);
 }
 
 #[test]
 #[should_panic(expected = "assertion failed: `(left == right)`")]
 fn test_dotdot() {
-    let _ = run_with_env(&[".."], &[".."]);
+    let _ = run_with_env(&[".."], &[".."], false);
 }
