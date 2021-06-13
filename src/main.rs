@@ -222,7 +222,7 @@ fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
     if !nonexisting_files.is_empty() {
         println!("The following input files do not exist:");
         for file in nonexisting_files {
-            println!("{}", Colour::Green.paint(file));
+            println!("{}", Colour::Red.paint(file));
         }
         println!();
         return Err(anyhow!("Nonexisting input files. Aborting."))
