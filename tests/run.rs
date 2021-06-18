@@ -18,13 +18,14 @@ pub fn renamer(editor: impl AsRef<path::Path>) -> anyhow::Result<assert_cmd::Com
     let mut cmd =
         assert_cmd::Command::cargo_bin("renamer").context("Could not find renamer binary")?;
     cmd.arg("--yes");
-    cmd.env("EDITOR", editor_path);
+    cmd.env("EDITOR", editor_path.canonicalize()?);
     Ok(cmd)
 }
 
 pub fn run_with_env(
     input: &[impl AsRef<str>],
     replacements: &[impl AsRef<str>],
+    create_inputs: bool
 ) -> anyhow::Result<assert_cmd::assert::Assert> {
     let input: Vec<_> = input.iter().map(AsRef::as_ref).collect();
     let replacements: Vec<_> = replacements.iter().map(AsRef::as_ref).collect();
@@ -33,12 +34,19 @@ pub fn run_with_env(
     let input_file = tempdir.path().join("input");
     let output_file = tempdir.path().join("output");
 
+    if create_inputs {
+        for file in &input {
+            let _ = fs::File::create(tempdir.path().join(file));
+        }
+    }
+
     fs::write(&output_file, replacements.join("\n"))
         .context("Could not write replacements to editor output file")?;
 
     let assert = renamer("env-editor.py")?
         .env("TEST_EDITOR_INPUT", &input_file)
         .env("TEST_EDITOR_OUTPUT", &output_file)
+        .current_dir(tempdir.path())
         .write_stdin(input.join("\n"))
         .assert();
 
@@ -47,7 +55,9 @@ pub fn run_with_env(
     } else {
         String::new()
     };
+
     assert_eq!(input.join("\n"), editor_input);
+
 
     Ok(assert)
 }
@@ -107,7 +117,7 @@ impl TestCase {
     }
 
     pub fn run(&self) -> anyhow::Result<assert_cmd::assert::Assert> {
-        run_with_env(&self.input()?, &self.replacements()?)
+        run_with_env(&self.input()?, &self.replacements()?, false)
     }
 
     pub fn assert_run(&self) -> anyhow::Result<assert_cmd::assert::Assert> {
