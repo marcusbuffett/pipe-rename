@@ -207,7 +207,7 @@ fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
     if !replacements_over_existing_files.is_empty() {
         println!("The following replacements overwrite existing files:");
         for replacement in &replacements_over_existing_files {
-            println!("{}", Colour::Green.paint(replacement.to_string()));
+            println!("{}", Colour::Red.paint(replacement.to_string()));
         }
         println!();
         return Err(anyhow!("Refusing to overwrite existing files. Aborting."));
@@ -274,20 +274,27 @@ fn execute_renames(
     Ok(())
 }
 
-fn prompt(yes: bool) -> anyhow::Result<&'static str> {
-    let selections = vec!["Yes", "No", "Edit", "Reset"];
+fn prompt(yes: bool, is_successful: bool) -> anyhow::Result<&'static str> {
+    let all_selections = vec!["Yes", "No", "Edit", "Reset"];
 
     if yes {
-        return Ok(selections[0]);
+        return Ok(all_selections[0]);
     }
+
+    let possible_selections = if is_successful {
+        &all_selections[..]
+    } else {
+        // remove "Yes" option if the replacements are not possible
+        &all_selections[1..]
+    };
 
     let selection = Select::new()
         .with_prompt("Execute these renames?")
         .default(0)
-        .items(&selections)
+        .items(possible_selections)
         .interact()?;
 
-    Ok(selections[selection])
+    Ok(possible_selections[selection])
 }
 
 fn main() -> anyhow::Result<()> {
@@ -303,10 +310,15 @@ fn main() -> anyhow::Result<()> {
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
-        check_for_existing_files(&replacements)?;
-        print_replacements(&replacements, opts.pretty_diff);
+        let check_existing = check_for_existing_files(&replacements);
 
-        match prompt(opts.assume_yes)? {
+        match check_existing {
+            Ok(()) => print_replacements(&replacements, opts.pretty_diff),
+            e @ Err(_) if opts.assume_yes => return e,
+            Err(_) => {}
+        };
+
+        match prompt(opts.assume_yes, check_existing.is_ok())? {
             "Yes" => {
                 execute_renames(&replacements, opts.rename_command)?;
                 break;
