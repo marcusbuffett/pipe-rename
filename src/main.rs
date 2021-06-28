@@ -274,27 +274,40 @@ fn execute_renames(
     Ok(())
 }
 
-fn prompt(yes: bool, is_successful: bool) -> anyhow::Result<&'static str> {
-    let all_selections = vec!["Yes", "No", "Edit", "Reset"];
-
+fn prompt(selections: &[MenuItem], yes: bool) -> anyhow::Result<&MenuItem> {
     if yes {
-        return Ok(all_selections[0]);
+        return Ok(&selections[0]);
     }
-
-    let possible_selections = if is_successful {
-        &all_selections[..]
-    } else {
-        // remove "Yes" option if the replacements are not possible
-        &all_selections[1..]
-    };
 
     let selection = Select::new()
         .with_prompt("Execute these renames?")
         .default(0)
-        .items(possible_selections)
+        .items(&selections)
         .interact()?;
 
-    Ok(possible_selections[selection])
+    Ok(&selections[selection])
+}
+
+enum MenuItem {
+    /// Perform the current replacements
+    Yes,
+    /// Abort and do nothing
+    No,
+    /// Open the editor with the current replacements for edit
+    Edit,
+    /// Open the editor with the original names for edit
+    Reset
+}
+
+impl Display for MenuItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MenuItem::Yes => f.write_str("Yes"),
+            MenuItem::No => f.write_str("No"),
+            MenuItem::Edit => f.write_str("Edit"),
+            MenuItem::Reset => f.write_str("Reset")
+        }
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -312,24 +325,26 @@ fn main() -> anyhow::Result<()> {
 
         let check_existing = check_for_existing_files(&replacements);
 
-        match check_existing {
-            Ok(()) => print_replacements(&replacements, opts.pretty_diff),
+        let menu_options = match check_existing {
+            Ok(()) => {
+                print_replacements(&replacements, opts.pretty_diff);
+                vec![MenuItem::Yes, MenuItem::No, MenuItem::Edit, MenuItem::Reset]
+            }
             e @ Err(_) if opts.assume_yes => return e,
-            Err(_) => {}
+            Err(_) => vec![MenuItem::Edit, MenuItem::No, MenuItem::Reset]
         };
 
-        match prompt(opts.assume_yes, check_existing.is_ok())? {
-            "Yes" => {
+        match prompt(&menu_options, opts.assume_yes)? {
+            MenuItem::Yes => {
                 execute_renames(&replacements, opts.rename_command)?;
                 break;
             }
-            "No" => {
+            MenuItem::No => {
                 println!("Aborting");
                 break;
             }
-            "Edit" => buffer = new_files.clone(),
-            "Reset" => buffer = input_files.clone(),
-            _ => unreachable!(),
+            MenuItem::Edit => buffer = new_files.clone(),
+            MenuItem::Reset => buffer = input_files.clone(),
         }
     }
 
