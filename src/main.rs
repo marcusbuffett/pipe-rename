@@ -217,7 +217,10 @@ fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
 }
 
 fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
-    let nonexisting_files : Vec<_> = input_files.iter().filter(|input_file| !Path::new(input_file).exists()).collect();
+    let nonexisting_files: Vec<_> = input_files
+        .iter()
+        .filter(|input_file| !Path::new(input_file).exists())
+        .collect();
 
     if !nonexisting_files.is_empty() {
         println!("The following input files do not exist:");
@@ -225,7 +228,7 @@ fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        return Err(anyhow!("Nonexisting input files. Aborting."))
+        return Err(anyhow!("Nonexisting input files. Aborting."));
     }
 
     Ok(())
@@ -296,7 +299,7 @@ enum MenuItem {
     /// Open the editor with the current replacements for edit
     Edit,
     /// Open the editor with the original names for edit
-    Reset
+    Reset,
 }
 
 impl Display for MenuItem {
@@ -305,7 +308,7 @@ impl Display for MenuItem {
             MenuItem::Yes => f.write_str("Yes"),
             MenuItem::No => f.write_str("No"),
             MenuItem::Edit => f.write_str("Edit"),
-            MenuItem::Reset => f.write_str("Reset")
+            MenuItem::Reset => f.write_str("Reset"),
         }
     }
 }
@@ -331,7 +334,7 @@ fn main() -> anyhow::Result<()> {
                 vec![MenuItem::Yes, MenuItem::No, MenuItem::Edit, MenuItem::Reset]
             }
             e @ Err(_) if opts.assume_yes => return e,
-            Err(_) => vec![MenuItem::Edit, MenuItem::No, MenuItem::Reset]
+            Err(_) => vec![MenuItem::Edit, MenuItem::Yes, MenuItem::No, MenuItem::Reset],
         };
 
         match prompt(&menu_options, opts.assume_yes)? {
