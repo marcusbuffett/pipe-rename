@@ -1,5 +1,5 @@
 use ansi_term::Colour;
-use clap::Clap;
+use clap::Parser;
 
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
@@ -24,7 +24,7 @@ struct Rename {
     new: String,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(
     version = "1.2",
     author = "Marcus B. <me@mbufett.com>",
