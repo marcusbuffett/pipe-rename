@@ -1,6 +1,6 @@
 [package]
 name = "pipe-rename"
-version = "1.3.0"
+version = "1.4.1"
 authors = ["Marcus Buffett <marcusbuffett@me.com>"]
 description = "Rename your files using your favorite text editor"
 homepage = "https://github.com/marcusbuffett/pipe-rename"
@@ -19,7 +19,8 @@ path = "src/main.rs"
 anyhow = "1.0.32"
 thiserror = "1.0.20"
 subprocess = "0.2.4"
-clap = "3.0.0-beta.5"
+clap = {version = "3.0.1", features = ["derive"]}
+# clap = { git = "https://github.com/clap-rs/clap", tag = "v3.0.1" }
 tempfile = "3.1.0"
 dialoguer = "0.6.2"
 ansi_term = "0.12.1"

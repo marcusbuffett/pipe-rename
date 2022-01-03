@@ -24,7 +24,7 @@ struct Rename {
     new: String,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(
     version = "1.2",
     author = "Marcus B. <me@mbufett.com>",
