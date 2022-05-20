@@ -42,6 +42,9 @@ struct Opts {
     /// Answer all prompts with yes
     #[clap(short = 'y', long = "yes")]
     assume_yes: bool,
+    /// Overwrite existing files
+    #[clap(short, long)]
+    force: bool,
 }
 
 impl Rename {
@@ -217,7 +220,10 @@ fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
 }
 
 fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
-    let nonexisting_files : Vec<_> = input_files.iter().filter(|input_file| !Path::new(input_file).exists()).collect();
+    let nonexisting_files: Vec<_> = input_files
+        .iter()
+        .filter(|input_file| !Path::new(input_file).exists())
+        .collect();
 
     if !nonexisting_files.is_empty() {
         println!("The following input files do not exist:");
@@ -225,7 +231,7 @@ fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        return Err(anyhow!("Nonexisting input files. Aborting."))
+        return Err(anyhow!("Nonexisting input files. Aborting."));
     }
 
     Ok(())
@@ -303,7 +309,9 @@ fn main() -> anyhow::Result<()> {
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
-        check_for_existing_files(&replacements)?;
+        if !opts.force {
+            check_for_existing_files(&replacements)?;
+        }
         print_replacements(&replacements, opts.pretty_diff);
 
         match prompt(opts.assume_yes)? {
