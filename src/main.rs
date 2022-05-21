@@ -18,12 +18,6 @@ use thiserror::Error;
 mod text_diff;
 use text_diff::{calculate_text_diff, TextDiff};
 
-#[derive(Debug, Clone)]
-struct Rename {
-    original: String,
-    new: String,
-}
-
 #[derive(Clap)]
 #[clap(
     version = "1.2",
@@ -44,7 +38,25 @@ struct Opts {
     assume_yes: bool,
 }
 
+#[derive(Debug, Clone)]
+struct Rename {
+    original: String,
+    new: String,
+}
+
 impl Rename {
+    fn new(original: &str, new: &str) -> Self {
+        // TODO: replace ^~/ with $HOME
+        // if new[0] == "~/" {
+        //     let home = env::var("HOME").unwrap_or("~");
+        // }
+
+        Rename {
+            original: original.to_string(),
+            new: new.to_string(),
+        }
+    }
+
     fn pretty_diff(&self) -> impl Display {
         struct PrettyDiff(Rename);
         impl Display for PrettyDiff {
@@ -124,10 +136,7 @@ fn find_renames(
             if original == new {
                 None
             } else {
-                Some(Rename {
-                    original: original.to_string(),
-                    new: new.to_string(),
-                })
+                Some(Rename::new(original, new))
             }
         })
         .collect();
@@ -217,7 +226,10 @@ fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
 }
 
 fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
-    let nonexisting_files : Vec<_> = input_files.iter().filter(|input_file| !Path::new(input_file).exists()).collect();
+    let nonexisting_files: Vec<_> = input_files
+        .iter()
+        .filter(|input_file| !Path::new(input_file).exists())
+        .collect();
 
     if !nonexisting_files.is_empty() {
         println!("The following input files do not exist:");
@@ -225,7 +237,7 @@ fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        return Err(anyhow!("Nonexisting input files. Aborting."))
+        return Err(anyhow!("Nonexisting input files. Aborting."));
     }
 
     Ok(())
