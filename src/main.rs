@@ -48,9 +48,10 @@ impl Rename {
     fn new(original: &str, new: &str) -> Self {
         // Expand ~ if applicable.
         let mut new = new.to_string();
-        if &new[..2] == "~/" {
-            let home = env::var("HOME").unwrap_or(String::from("~"));
-            new = new.replacen("~", &home, 1);
+        if let Ok(home) = env::var("HOME") {
+            if &new[..2] == "~/" {
+                new = new.replacen("~", &home, 1);
+            }
         }
 
         Rename {
