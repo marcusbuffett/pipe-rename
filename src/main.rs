@@ -202,7 +202,12 @@ fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-fn check_for_existing_files(replacements: &Vec<Rename>) -> anyhow::Result<()> {
+fn check_for_existing_files(replacements: &Vec<Rename>, force: bool) -> anyhow::Result<()> {
+    // Skip check if forcing renames.
+    if force {
+        return Ok(());
+    }
+
     let replacements_over_existing_files: Vec<_> = replacements
         .iter()
         .filter(|replacement| Path::new(&replacement.new).exists())
@@ -329,11 +334,7 @@ fn main() -> anyhow::Result<()> {
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
-        // if !opts.force {
-        //     check_for_existing_files(&replacements)?;
-        // }
-        print_replacements(&replacements, opts.pretty_diff);
-        let check_existing = check_for_existing_files(&replacements);
+        let check_existing = check_for_existing_files(&replacements, opts.force);
 
         let menu_options = match check_existing {
             Ok(()) => {
