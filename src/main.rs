@@ -18,7 +18,7 @@ use thiserror::Error;
 mod text_diff;
 use text_diff::{calculate_text_diff, TextDiff};
 
-#[derive(Clap)]
+#[derive(Parser, Debug)]
 #[clap(
     version = "1.2",
     author = "Marcus B. <me@mbufett.com>",
@@ -46,14 +46,16 @@ struct Rename {
 
 impl Rename {
     fn new(original: &str, new: &str) -> Self {
-        // TODO: replace ^~/ with $HOME
-        // if new[0] == "~/" {
-        //     let home = env::var("HOME").unwrap_or("~");
-        // }
+        // Expand ~ if applicable.
+        let mut new = new.to_string();
+        if &new[..2] == "~/" {
+            let home = env::var("HOME").unwrap_or(String::from("~"));
+            new = new.replacen("~", &home, 1);
+        }
 
         Rename {
             original: original.to_string(),
-            new: new.to_string(),
+            new,
         }
     }
 
