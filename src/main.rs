@@ -18,12 +18,6 @@ use thiserror::Error;
 mod text_diff;
 use text_diff::{calculate_text_diff, TextDiff};
 
-#[derive(Debug, Clone)]
-struct Rename {
-    original: String,
-    new: String,
-}
-
 #[derive(Parser, Debug)]
 #[clap(
     version = "1.2",
@@ -47,7 +41,28 @@ struct Opts {
     force: bool,
 }
 
+#[derive(Debug, Clone)]
+struct Rename {
+    original: String,
+    new: String,
+}
+
 impl Rename {
+    fn new(original: &str, new: &str) -> Self {
+        // Expand ~ if applicable.
+        let mut new = new.to_string();
+        if let Ok(home) = env::var("HOME") {
+            if &new[..2] == "~/" {
+                new = new.replacen("~", &home, 1);
+            }
+        }
+
+        Rename {
+            original: original.to_string(),
+            new,
+        }
+    }
+
     fn pretty_diff(&self) -> impl Display {
         struct PrettyDiff(Rename);
         impl Display for PrettyDiff {
@@ -127,10 +142,7 @@ fn find_renames(
             if original == new {
                 None
             } else {
-                Some(Rename {
-                    original: original.to_string(),
-                    new: new.to_string(),
-                })
+                Some(Rename::new(original, new))
             }
         })
         .collect();
