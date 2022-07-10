@@ -291,7 +291,7 @@ checksum = "029d8d0b2f198229de29dca79676f2738ff952edf3fde542eb8bf94d8c21b435"
 
 [[package]]
 name = "pipe-rename"
-version = "1.4.2"
+version = "1.5.0"
 dependencies = [
  "ansi_term",
  "anyhow",
