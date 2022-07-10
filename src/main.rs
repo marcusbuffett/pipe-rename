@@ -20,7 +20,7 @@ use text_diff::{calculate_text_diff, TextDiff};
 
 #[derive(Parser, Debug)]
 #[clap(
-    version = "1.2",
+    version = "1.4.2",
     author = "Marcus B. <me@mbufett.com>",
     about = "https://github.com/marcusbuffett/pipe-rename",
     long_about = "Takes a list of files and renames/moves them by piping them through an external editor"
