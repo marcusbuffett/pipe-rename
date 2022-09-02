@@ -4,7 +4,6 @@ use clap::Parser;
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
 use shell_escape::escape;
-use shell_words;
 use std::borrow::Cow;
 use std::env;
 use std::fmt::{Display, Formatter};
