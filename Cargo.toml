@@ -20,7 +20,7 @@ anyhow = "1.0.32"
 thiserror = "1.0.20"
 subprocess = "0.2.4"
 clap = {version = "3.0.1", features = ["derive"]}
-# clap = { git = "https://github.com/clap-rs/clap", tag = "v3.0.1" }
+shell-words = "1.0.0"
 tempfile = "3.1.0"
 dialoguer = "0.6.2"
 ansi_term = "0.12.1"
