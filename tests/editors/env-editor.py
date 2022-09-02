@@ -25,10 +25,7 @@ def require_env_var(name):
 in_file_name = require_env_var(ENV_INPUT)
 out_file_name = require_env_var(ENV_OUTPUT)
 
-if len(sys.argv) != 2:
-    print("Expected exactly one argument, aborting.")
-    sys.exit(1)
-edited_file_name = sys.argv[1]
+edited_file_name = sys.argv[-1]
 
 shutil.copy(edited_file_name, in_file_name)
 shutil.copy(out_file_name, edited_file_name)
