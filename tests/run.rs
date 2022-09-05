@@ -18,14 +18,21 @@ pub fn renamer(editor: impl AsRef<path::Path>) -> anyhow::Result<assert_cmd::Com
     let mut cmd =
         assert_cmd::Command::cargo_bin("renamer").context("Could not find renamer binary")?;
     cmd.arg("--yes");
-    cmd.env("EDITOR", editor_path.canonicalize()?);
+    cmd.env(
+        "EDITOR",
+        format!(
+            "{} {}",
+            editor_path.canonicalize()?.to_str().unwrap(),
+            "-n -i --wait"
+        ),
+    );
     Ok(cmd)
 }
 
 pub fn run_with_env(
     input: &[impl AsRef<str>],
     replacements: &[impl AsRef<str>],
-    create_inputs: bool
+    create_inputs: bool,
 ) -> anyhow::Result<assert_cmd::assert::Assert> {
     let input: Vec<_> = input.iter().map(AsRef::as_ref).collect();
     let replacements: Vec<_> = replacements.iter().map(AsRef::as_ref).collect();
@@ -57,7 +64,6 @@ pub fn run_with_env(
     };
 
     assert_eq!(input.join("\n"), editor_input);
-
 
     Ok(assert)
 }

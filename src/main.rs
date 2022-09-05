@@ -197,9 +197,12 @@ fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
 fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
     let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
     write!(tmpfile, "{}", input_files.join("\n"))?;
-    let editor = env::var("EDITOR").unwrap_or("vim".to_string());
+    let editor_string = env::var("EDITOR").unwrap_or("vim".to_string());
+    let editor_parsed = shell_words::split(&editor_string)
+        .expect("failed to parse command line flags in EDITOR command");
     tmpfile.seek(SeekFrom::Start(0))?;
-    let child = Command::new(editor)
+    let child = Command::new(&editor_parsed[0])
+        .args(&editor_parsed[1..])
         .arg(tmpfile.path())
         .spawn()
         .context("Failed to execute editor process")?;
