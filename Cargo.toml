@@ -26,6 +26,7 @@ dialoguer = "0.6.2"
 ansi_term = "0.12.1"
 shell-escape = "0.1.5"
 diff = "0.1.12"
+wild = "2"
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
