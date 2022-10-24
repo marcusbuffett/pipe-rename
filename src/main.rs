@@ -12,6 +12,7 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::process::Command;
 use tempfile;
+use wild;
 
 use thiserror::Error;
 
@@ -338,7 +339,7 @@ impl Display for MenuItem {
 }
 
 fn main() -> anyhow::Result<()> {
-    let opts = Opts::parse();
+    let opts = Opts::parse_from(wild::args());
     let input_files = get_input_files(opts.files)?;
 
     check_input_files(&input_files)?;
