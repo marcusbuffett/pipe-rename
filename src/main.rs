@@ -54,7 +54,7 @@ impl Rename {
         // Expand ~ if applicable.
         let mut new = new.to_string();
         if let Ok(home) = env::var("HOME") {
-            if &new[..2] == "~/" {
+            if new.starts_with("~/") {
                 new = new.replacen("~", &home, 1);
             }
         }
