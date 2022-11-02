@@ -197,7 +197,11 @@ fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
 }
 
 fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Vec<String>> {
-    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
+    let mut tmpfile = tempfile::Builder::new()
+        .prefix("renamer-")
+        .suffix(".txt")
+        .tempfile()
+        .context("Could not create temp file")?;
     write!(tmpfile, "{}", input_files.join("\n"))?;
     let editor_parsed = shell_words::split(editor_string)
         .expect("failed to parse command line flags in EDITOR command");
@@ -344,11 +348,12 @@ fn main() -> anyhow::Result<()> {
 
     check_input_files(&input_files)?;
 
+    let default_editor = if cfg!(windows) { "notepad.exe" } else { "vim" };
+    let default_editor = default_editor.to_string();
     let editor = opts.editor
         .unwrap_or_else(
             || env::var("EDITOR")
-            .unwrap_or_else(
-                |_| "vim".to_string()));
+            .unwrap_or(default_editor));
     let mut buffer = input_files.clone();
 
     loop {

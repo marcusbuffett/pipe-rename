@@ -47,13 +47,28 @@ USAGE:
 ARGS:
     <FILES>...
 
+
 OPTIONS:
-    -c, --rename-command <RENAME_COMMAND>    Optionally set a custom rename command, like 'git mv'
-    -f, --force                              Overwrite existing files
-    -h, --help                               Print help information
-    -p, --pretty-diff                        Prettify diffs
-    -V, --version                            Print version information
-    -y, --yes                                Answer all prompts with yes
+    -c, --rename-command <COMMAND>
+            Optionally set a custom rename command, like 'git mv'
+
+    -e, --editor <EDITOR>
+            Optionally set an editor, overriding EDITOR environment variable and default
+
+    -f, --force
+            Overwrite existing files
+
+    -h, --help
+            Print help information
+
+    -p, --pretty-diff
+            Prettify diffs
+
+    -V, --version
+            Print version information
+
+    -y, --yes
+            Answer all prompts with yes
 ```
 
 ## Contributors ✨
