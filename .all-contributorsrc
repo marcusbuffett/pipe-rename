@@ -37,6 +37,7 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/651077?v=4",
       "profile": "https://timkovi.ch/",
       "contributions": [
+        "ideas",
         "code"
       ]
     },
@@ -47,6 +48,16 @@
       "profile": "https://github.com/bew",
       "contributions": [
         "ideas"
+      ]
+    },
+    {
+      "login": "assarbad",
+      "name": "Oliver Schneider",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3238620?v=4",
+      "profile": "https://assarbad.net/en/welcome/",
+      "contributions": [
+        "ideas",
+        "code"
       ]
     }
   ],
