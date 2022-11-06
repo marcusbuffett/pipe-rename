@@ -11,8 +11,6 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::process::Command;
-use tempfile;
-use wild;
 
 use thiserror::Error;
 
@@ -30,8 +28,11 @@ struct Opts {
     #[clap(name = "FILES")]
     files: Vec<String>,
     /// Optionally set a custom rename command, like 'git mv'
-    #[clap(short = 'c', long)]
+    #[clap(short = 'c', long, value_name = "COMMAND")]
     rename_command: Option<String>,
+    /// Optionally set an editor, overriding EDITOR environment variable and default
+    #[clap(short = 'e', long)]
+    editor: Option<String>,
     /// Prettify diffs
     #[clap(short, long)]
     pretty_diff: bool,
@@ -55,7 +56,7 @@ impl Rename {
         let mut new = new.to_string();
         if let Ok(home) = env::var("HOME") {
             if new.starts_with("~/") {
-                new = new.replacen("~", &home, 1);
+                new = new.replacen('~', &home, 1);
             }
         }
 
@@ -138,7 +139,7 @@ fn find_renames(
         return Err(RenamerError::UnequalLines);
     }
     let renames: Vec<_> = old_lines
-        .into_iter()
+        .iter()
         .zip(new_lines)
         .filter_map(|(original, new)| {
             if original == new {
@@ -195,18 +196,21 @@ fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
         .collect())
 }
 
-fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
-    let mut tmpfile = tempfile::NamedTempFile::new().context("Could not create temp file")?;
+fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Vec<String>> {
+    let mut tmpfile = tempfile::Builder::new()
+        .prefix("renamer-")
+        .suffix(".txt")
+        .tempfile()
+        .context("Could not create temp file")?;
     write!(tmpfile, "{}", input_files.join("\n"))?;
-    let editor_string = env::var("EDITOR").unwrap_or("vim".to_string());
-    let editor_parsed = shell_words::split(&editor_string)
+    let editor_parsed = shell_words::split(editor_string)
         .expect("failed to parse command line flags in EDITOR command");
     tmpfile.seek(SeekFrom::Start(0))?;
     let child = Command::new(&editor_parsed[0])
         .args(&editor_parsed[1..])
         .arg(tmpfile.path())
         .spawn()
-        .context("Failed to execute editor process")?;
+        .with_context(|| format!("Failed to execute editor command: '{}'", shell_words::join(editor_parsed)))?;
 
     let output = child.wait_with_output()?;
     if !output.status.success() {
@@ -219,7 +223,7 @@ fn open_editor(input_files: &Vec<String>) -> anyhow::Result<Vec<String>> {
         .collect())
 }
 
-fn check_for_existing_files(replacements: &Vec<Rename>, force: bool) -> anyhow::Result<()> {
+fn check_for_existing_files(replacements: &[Rename], force: bool) -> anyhow::Result<()> {
     // Skip check if forcing renames.
     if force {
         return Ok(());
@@ -241,7 +245,7 @@ fn check_for_existing_files(replacements: &Vec<Rename>, force: bool) -> anyhow::
     Ok(())
 }
 
-fn check_input_files(input_files: &Vec<String>) -> anyhow::Result<()> {
+fn check_input_files(input_files: &[String]) -> anyhow::Result<()> {
     let nonexisting_files: Vec<_> = input_files
         .iter()
         .filter(|input_file| !Path::new(input_file).exists())
@@ -310,7 +314,7 @@ fn prompt(selections: &[MenuItem], yes: bool) -> anyhow::Result<&MenuItem> {
     let selection = Select::new()
         .with_prompt("Execute these renames?")
         .default(0)
-        .items(&selections)
+        .items(selections)
         .interact()?;
 
     Ok(&selections[selection])
@@ -344,10 +348,16 @@ fn main() -> anyhow::Result<()> {
 
     check_input_files(&input_files)?;
 
+    let default_editor = if cfg!(windows) { "notepad.exe" } else { "vim" };
+    let default_editor = default_editor.to_string();
+    let editor = opts.editor
+        .unwrap_or_else(
+            || env::var("EDITOR")
+            .unwrap_or(default_editor));
     let mut buffer = input_files.clone();
 
     loop {
-        let new_files = open_editor(&buffer)?;
+        let new_files = open_editor(&buffer, &editor)?;
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
