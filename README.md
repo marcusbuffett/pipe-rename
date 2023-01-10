@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/pipe-rename)](https://crates.io/crates/pipe-rename)
 
-`pipe-rename` takes a list of files as input, opens your \$EDITOR of choice, then
+`pipe-rename` takes a list of files as input, opens your `$EDITOR` of choice, then
 renames those files accordingly.
 
 ![](renamer.gif)
@@ -16,14 +16,15 @@ This will install the `renamer` binary.
 ## Usage
 
 Usage is simple, just pipe a list of files into `renamer`. This will open your
-\$EDITOR (or vim, if not set), and once your editor exits it will detect which
-files were renamed:
+`$EDITOR` (or vim, if not set or passed with `--editor`), and once your editor
+exits it will detect which files were renamed:
 
 ```bash
 ls | renamer
 ```
 
-You can also supply filenames as positional arguments. To rename txt files in the current directory:
+You can also supply filenames as positional arguments. To rename `.txt` files
+in the current directory:
 
 ```bash
 renamer *.txt
@@ -35,6 +36,65 @@ to run `git mv old new` on each rename, you can do something like this:
 ```bash
 ls | renamer --rename-command "git mv"
 ```
+
+### Caveat emptor
+
+**NB:** it makes sense to be aware of the issues `ls` can cause in this
+context, depending on the `ls` flavor (or substitute, such as `lsd`, `exa`
+...) used. Please read [this document](https://web.archive.org/web/20230102124738/http://mywiki.wooledge.org/ParsingLs)
+for more information.
+
+While your shell will pass the file names individually, no matter if they
+contain whitespace, an `ls` that fails to detect the pipe and print one file
+name per line will cause issues. Unfortunately `ls -Q` also isn't a solution
+here, because unlike the shell -- which will strip quotes prior to passing
+them to invoked commands -- `renamer` won't handle the quoted names and will
+probably complain about non-existent files, too.
+
+### Advanced usage
+
+If you have tools like GNU `find` at your disposal, you can also use the
+following method:
+
+```bash
+find -type f -exec renamer {} +
+```
+
+This would execute `renamer` with all of the files matched by `find`. You can
+use additional `find` predicates such as `-name` or `-ipath` to limit which
+files to rename. There is, however, one caveat: on large lists of files you
+may encounter multiple invocations of `renamer` -- and thus your editor -- due
+to how `find ... -exec {} +` works. It will pass as many file names on the
+command line as it can fit but it is limited by `ARG_MAX` (see `getconf ARG_MAX`
+output for how long the overall command line length can be on your system).
+
+Other `find` flavors would allow the following, but it would invoke `renamer`
+-- and thus your editor -- *once for every single found file*:
+
+```bash
+find -type f -exec renamer {} \;
+```
+
+In order to sidestep this issue, you can employ `xargs` in conjunction with
+`find` like so (`-print` is implied for `find`):
+
+```
+find -type f | xargs renamer --editor vim
+```
+
+The part past `xargs` is the invocation of `renamer` without the file names.
+It exists just to demonstrate how you would pass arguments to `renamer` using
+this method.
+
+If your files contain wonky characters you could also try:
+
+```
+find -type f -print0 | xargs -0 renamer --editor vim
+```
+
+Alas, this could be asking for trouble. If your file names contain line breaks,
+for example, this could confuse `renamer` which expects a single file name per
+line when re-reading the edited file.
 
 ## Helptext
 
