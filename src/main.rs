@@ -3,13 +3,14 @@ use clap::Parser;
 
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
+use serde::{Deserialize, Serialize};
 use shell_escape::escape;
 use std::borrow::Cow;
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use thiserror::Error;
@@ -42,9 +43,12 @@ struct Opts {
     /// Overwrite existing files
     #[clap(short, long)]
     force: bool,
+    /// Undo the previous renaming operation
+    #[clap(short, long)]
+    undo: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Rename {
     original: String,
     new: String,
@@ -342,8 +346,49 @@ impl Display for MenuItem {
     }
 }
 
+fn write_undo_renames(backup_file: PathBuf, replacements: Vec<Rename>) -> anyhow::Result<()> {
+    let undo_replacements: Vec<_> = replacements
+        .into_iter()
+        .map(|r| Rename {
+            original: r.new,
+            new: r.original,
+        })
+        .collect();
+    
+    let file = fs::File::create(backup_file)?;
+
+    serde_json::to_writer(file, &undo_replacements)?;
+    Ok(())
+}
+
+fn load_undo_renames(backup_file: PathBuf) -> anyhow::Result<Vec<Rename>> {
+    let file = fs::File::open(&backup_file);
+    let file = match file {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound =>
+            return Err(anyhow!("No undo information found.")),
+        Err(e) => return Err(e.into())
+    };
+    let replacements : Vec<Rename> = serde_json::from_reader(file)?;
+    for replacement in &replacements {
+        if !PathBuf::from(&replacement.original).exists() {
+            return Err(anyhow!("Undo not possible. \"{}\" is missing.", replacement.original));
+        }
+    }
+    fs::remove_file(backup_file)?;
+    Ok(replacements)
+}
+
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse_from(wild::args());
+    let backup_file = std::env::temp_dir().join("pipe-renamer_undo.json");
+
+    if opts.undo {
+        let replacements = load_undo_renames(backup_file)?;
+        execute_renames(&replacements, opts.rename_command)?;
+        return Ok(());
+    }
+
     let input_files = get_input_files(opts.files)?;
 
     check_input_files(&input_files)?;
@@ -375,6 +420,7 @@ fn main() -> anyhow::Result<()> {
         match prompt(&menu_options, opts.assume_yes)? {
             MenuItem::Yes => {
                 execute_renames(&replacements, opts.rename_command)?;
+                write_undo_renames(backup_file, replacements)?;
                 break;
             }
             MenuItem::No => {
