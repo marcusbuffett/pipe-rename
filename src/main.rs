@@ -4,8 +4,6 @@ use clap::Parser;
 use anyhow::{anyhow, Context};
 use dialoguer::Select;
 use serde::{Deserialize, Serialize};
-use shell_escape::escape;
-use std::borrow::Cow;
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -50,8 +48,8 @@ struct Opts {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Rename {
-    original: String,
-    new: String,
+    original: PathBuf,
+    new: PathBuf,
 }
 
 impl Rename {
@@ -65,8 +63,8 @@ impl Rename {
         }
 
         Rename {
-            original: original.to_string(),
-            new,
+            original: original.into(),
+            new: new.into(),
         }
     }
 
@@ -74,7 +72,10 @@ impl Rename {
         struct PrettyDiff(Rename);
         impl Display for PrettyDiff {
             fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-                let diff_changes = calculate_text_diff(&self.0.original, &self.0.new);
+                let diff_changes = calculate_text_diff(
+                    &self.0.original.display().to_string(),
+                    &self.0.new.display().to_string(),
+                );
 
                 // print old
                 write!(f, "{}", Colour::Red.paint("- "))?;
@@ -115,7 +116,12 @@ impl Rename {
         struct PlainDiff(Rename);
         impl Display for PlainDiff {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{} -> {}", self.0.original, self.0.new)
+                write!(
+                    f,
+                    "{} -> {}",
+                    self.0.original.display(),
+                    self.0.new.display()
+                )
             }
         }
         PlainDiff(self.clone())
@@ -295,13 +301,10 @@ fn execute_renames(
 ) -> anyhow::Result<()> {
     for replacement in replacements {
         if let Some(ref cmd) = rename_command {
-            subprocess::Exec::shell(format!(
-                "{} {} {}",
-                cmd,
-                escape(Cow::from(replacement.original.clone())),
-                escape(Cow::from(replacement.new.clone()))
-            ))
-            .join()?;
+            subprocess::Exec::cmd(cmd)
+                .arg(&replacement.original)
+                .arg(&replacement.new)
+                .join()?;
         } else {
             fs::rename(&replacement.original, &replacement.new)?;
         }
@@ -347,16 +350,30 @@ impl Display for MenuItem {
 }
 
 fn write_undo_renames(backup_file: PathBuf, replacements: Vec<Rename>) -> anyhow::Result<()> {
-    let undo_replacements: Vec<_> = replacements
+    let undo_replacements = replacements
         .into_iter()
-        .map(|r| Rename {
-            original: r.new,
-            new: r.original,
-        })
-        .collect();
-    
-    let file = fs::File::create(backup_file)?;
+        .map(|r| {
+            // make paths absolute to that undo does not depend on CWD
+            let original = if r.original.is_relative() {
+                std::env::current_dir()?.join(r.original)
+            } else {
+                r.original
+            };
+            let new = if r.new.is_relative() {
+                std::env::current_dir()?.join(r.new)
+            } else {
+                r.new
+            };
 
+            Ok(Rename {
+                // swap original and new to get undo replacements
+                original: new,
+                new: original,
+            })
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
+    let file = fs::File::create(backup_file)?;
     serde_json::to_writer(file, &undo_replacements)?;
     Ok(())
 }
@@ -365,18 +382,22 @@ fn load_undo_renames(backup_file: PathBuf) -> anyhow::Result<Vec<Rename>> {
     let file = fs::File::open(&backup_file);
     let file = match file {
         Ok(f) => f,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound =>
-            return Err(anyhow!("No undo information found.")),
-        Err(e) => return Err(e.into())
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(anyhow!("No undo information found."))
+        }
+        Err(e) => return Err(e.into()),
     };
-    let replacements : Vec<Rename> = serde_json::from_reader(file)?;
-    for replacement in &replacements {
-        if !PathBuf::from(&replacement.original).exists() {
-            return Err(anyhow!("Undo not possible. \"{}\" is missing.", replacement.original));
+    let undo_replacements: Vec<Rename> = serde_json::from_reader(file)?;
+    for replacement in &undo_replacements {
+        if !replacement.original.exists() {
+            return Err(anyhow!(
+                "Undo not possible. \"{}\" is missing.",
+                replacement.original.display()
+            ));
         }
     }
     fs::remove_file(backup_file)?;
-    Ok(replacements)
+    Ok(undo_replacements)
 }
 
 fn main() -> anyhow::Result<()> {
