@@ -349,21 +349,21 @@ impl Display for MenuItem {
     }
 }
 
+fn make_absolute(path: PathBuf) -> anyhow::Result<PathBuf> {
+    if path.is_relative() {
+        Ok(std::env::current_dir()?.join(path))
+    } else {
+        Ok(path)
+    }
+}
+
 fn write_undo_renames(backup_file: PathBuf, replacements: Vec<Rename>) -> anyhow::Result<()> {
     let undo_replacements = replacements
         .into_iter()
         .map(|r| {
             // make paths absolute to that undo does not depend on CWD
-            let original = if r.original.is_relative() {
-                std::env::current_dir()?.join(r.original)
-            } else {
-                r.original
-            };
-            let new = if r.new.is_relative() {
-                std::env::current_dir()?.join(r.new)
-            } else {
-                r.new
-            };
+            let original = make_absolute(r.original)?;
+            let new = make_absolute(r.new)?;
 
             Ok(Rename {
                 // swap original and new to get undo replacements
@@ -407,6 +407,7 @@ fn main() -> anyhow::Result<()> {
     if opts.undo {
         let replacements = load_undo_renames(backup_file)?;
         execute_renames(&replacements, opts.rename_command)?;
+        println!("Restored {} files.", replacements.len());
         return Ok(());
     }
 
