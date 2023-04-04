@@ -37,6 +37,44 @@ to run `git mv old new` on each rename, you can do something like this:
 ls | renamer --rename-command "git mv"
 ```
 
+## Helptext
+
+```
+Takes a list of files and renames/moves them by piping them through an external editor
+
+USAGE:
+    renamer [OPTIONS] [FILES]...
+
+ARGS:
+    <FILES>...
+
+
+OPTIONS:
+    -c, --rename-command <COMMAND>
+            Optionally set a custom rename command, like 'git mv'
+
+    -e, --editor <EDITOR>
+            Optionally set an editor, overriding EDITOR environment variable and default
+
+    -f, --force
+            Overwrite existing files
+
+    -h, --help
+            Print help information
+
+    -p, --pretty-diff
+            Prettify diffs
+
+    -u, --undo
+            Undo the previous renaming operation
+
+    -V, --version
+            Print version information
+
+    -y, --yes
+            Answer all prompts with yes
+```
+
 ### Caveat emptor
 
 **NB:** it makes sense to be aware of the issues `ls` can cause in this
@@ -95,41 +133,6 @@ find -type f -print0 | xargs -0 renamer --editor vim
 Alas, this could be asking for trouble. If your file names contain line breaks,
 for example, this could confuse `renamer` which expects a single file name per
 line when re-reading the edited file.
-
-## Helptext
-
-```
-Takes a list of files and renames/moves them by piping them through an external editor
-
-USAGE:
-    renamer [OPTIONS] [FILES]...
-
-ARGS:
-    <FILES>...
-
-
-OPTIONS:
-    -c, --rename-command <COMMAND>
-            Optionally set a custom rename command, like 'git mv'
-
-    -e, --editor <EDITOR>
-            Optionally set an editor, overriding EDITOR environment variable and default
-
-    -f, --force
-            Overwrite existing files
-
-    -h, --help
-            Print help information
-
-    -p, --pretty-diff
-            Prettify diffs
-
-    -V, --version
-            Print version information
-
-    -y, --yes
-            Answer all prompts with yes
-```
 
 ## Contributors ✨
 
