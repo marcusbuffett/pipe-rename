@@ -19,7 +19,7 @@ use text_diff::{calculate_text_diff, TextDiff};
 #[derive(Parser, Debug)]
 #[clap(
     version = env!("CARGO_PKG_VERSION"),
-    author = "Marcus B. <me@mbufett.com>",
+    author = "Marcus B. <me@mbuffett.com>",
     about = "https://github.com/marcusbuffett/pipe-rename",
     long_about = "Takes a list of files and renames/moves them by piping them through an external editor"
 )]
@@ -220,7 +220,12 @@ fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Ve
         .args(&editor_parsed[1..])
         .arg(tmpfile.path())
         .spawn()
-        .with_context(|| format!("Failed to execute editor command: '{}'", shell_words::join(editor_parsed)))?;
+        .with_context(|| {
+            format!(
+                "Failed to execute editor command: '{}'",
+                shell_words::join(editor_parsed)
+            )
+        })?;
 
     let output = child.wait_with_output()?;
     if !output.status.success() {
@@ -306,7 +311,19 @@ fn execute_renames(
                 .arg(&replacement.new)
                 .join()?;
         } else {
-            fs::rename(&replacement.original, &replacement.new)?;
+            match fs::rename(&replacement.original, &replacement.new) {
+                Ok(()) => (),
+                // If renaming fails, try creating parent directories and try again.
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    let dir = &replacement.new.parent();
+                    if let Some(dir) = dir {
+                        fs::create_dir_all(&dir)?;
+                    }
+
+                    fs::rename(&replacement.original, &replacement.new)?;
+                }
+                Err(e) => return Err(e.into()),
+            };
         }
     }
 
@@ -417,10 +434,9 @@ fn main() -> anyhow::Result<()> {
 
     let default_editor = if cfg!(windows) { "notepad.exe" } else { "vim" };
     let default_editor = default_editor.to_string();
-    let editor = opts.editor
-        .unwrap_or_else(
-            || env::var("EDITOR")
-            .unwrap_or(default_editor));
+    let editor = opts
+        .editor
+        .unwrap_or_else(|| env::var("EDITOR").unwrap_or(default_editor));
     let mut buffer = input_files.clone();
 
     loop {
