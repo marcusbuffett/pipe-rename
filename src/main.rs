@@ -19,7 +19,7 @@ use text_diff::{calculate_text_diff, TextDiff};
 #[derive(Parser, Debug)]
 #[clap(
     version = env!("CARGO_PKG_VERSION"),
-    author = "Marcus B. <me@mbufett.com>",
+    author = "Marcus B. <me@mbuffett.com>",
     about = "https://github.com/marcusbuffett/pipe-rename",
     long_about = "Takes a list of files and renames/moves them by piping them through an external editor"
 )]
@@ -306,7 +306,19 @@ fn execute_renames(
                 .arg(&replacement.new)
                 .join()?;
         } else {
-            fs::rename(&replacement.original, &replacement.new)?;
+            match fs::rename(&replacement.original, &replacement.new) {
+                Ok(()) => (),
+                // If renaming fails, try creating parent directories and try again.
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    let dir = &replacement.new.parent();
+                    if let Some(dir) = dir {
+                        fs::create_dir_all(&dir)?;
+                    }
+
+                    fs::rename(&replacement.original, &replacement.new)?;
+                },
+                Err(e) => return Err(e.into()),
+            };
         }
     }
 
