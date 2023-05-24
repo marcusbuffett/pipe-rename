@@ -318,9 +318,8 @@ fn execute_renames(
                     let dir = &replacement.new.parent();
                     if let Some(dir) = dir {
                         fs::create_dir_all(&dir)?;
+                        fs::rename(&replacement.original, &replacement.new)?;
                     }
-
-                    fs::rename(&replacement.original, &replacement.new)?;
                 }
                 Err(e) => return Err(e.into()),
             };
