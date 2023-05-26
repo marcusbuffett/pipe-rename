@@ -1,7 +1,7 @@
 use ansi_term::Colour;
 use clap::Parser;
 
-use anyhow::{anyhow, Context};
+use anyhow::{bail, Context};
 use dialoguer::Select;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -178,7 +178,7 @@ fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
         buffer
     };
     if input.is_empty() {
-        return Err(anyhow!("No input files on stdin or as args. Aborting."));
+        bail!("No input files on stdin or as args. Aborting.");
     }
     return Ok(input.lines().map(|f| f.to_string()).collect());
 }
@@ -191,7 +191,7 @@ fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
         input_files = expand_dir(&input_files[0])?;
     }
     if input_files.is_empty() {
-        return Err(anyhow!("No input files on stdin or as args. Aborting."));
+        bail!("No input files on stdin or as args. Aborting.");
     }
 
     Ok(input_files)
@@ -229,7 +229,7 @@ fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Ve
 
     let output = child.wait_with_output()?;
     if !output.status.success() {
-        return Err(anyhow!("Editor terminated unexpectedly. Aborting."));
+        bail!("Editor terminated unexpectedly. Aborting.");
     }
 
     Ok(fs::read_to_string(&tmpfile)?
@@ -254,7 +254,7 @@ fn check_for_existing_files(replacements: &[Rename], force: bool) -> anyhow::Res
             println!("{}", Colour::Red.paint(replacement.to_string()));
         }
         println!();
-        return Err(anyhow!("Refusing to overwrite existing files. Aborting."));
+        bail!("Refusing to overwrite existing files. Aborting.");
     }
 
     Ok(())
@@ -272,7 +272,7 @@ fn check_input_files(input_files: &[String]) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        return Err(anyhow!("Nonexisting input files. Aborting."));
+        bail!("Nonexisting input files. Aborting.");
     }
 
     Ok(())
@@ -399,17 +399,17 @@ fn load_undo_renames(backup_file: PathBuf) -> anyhow::Result<Vec<Rename>> {
     let file = match file {
         Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Err(anyhow!("No undo information found."))
+            bail!("No undo information found.")
         }
         Err(e) => return Err(e.into()),
     };
     let undo_replacements: Vec<Rename> = serde_json::from_reader(file)?;
     for replacement in &undo_replacements {
         if !replacement.original.exists() {
-            return Err(anyhow!(
+            bail!(
                 "Undo not possible. \"{}\" is missing.",
                 replacement.original.display()
-            ));
+            );
         }
     }
     fs::remove_file(backup_file)?;
