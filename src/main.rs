@@ -4,7 +4,6 @@ use clap::Parser;
 use anyhow::{bail, Context};
 use dialoguer::Select;
 use serde::{Deserialize, Serialize};
-use shell_escape::escape;
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -273,7 +272,7 @@ fn check_input_files(input_files: &[String]) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        bail!("Nonexisting input files. Aborting.");
+        bail!("Nonexistent input files. Aborting.");
     }
 
     Ok(())
@@ -307,13 +306,13 @@ fn execute_renames(
 ) -> anyhow::Result<()> {
     for replacement in replacements {
         if let Some(ref cmd) = rename_command {
-            subprocess::Exec::shell(format!(
-                "{} {} {}",
-                cmd,
-                escape(replacement.original.to_string_lossy()),
-                escape(replacement.new.to_string_lossy())
-            ))
-            .join()?;
+            let cmd_parsed = shell_words::split(cmd)
+                .expect("failed to parse command line flags in rename command");
+            subprocess::Exec::cmd(&cmd_parsed[0])
+                .args(&cmd_parsed[1..])
+                .arg(&replacement.original)
+                .arg(&replacement.new)
+                .join()?;
         } else {
             match fs::rename(&replacement.original, &replacement.new) {
                 Ok(()) => (),

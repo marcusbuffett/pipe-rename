@@ -359,7 +359,7 @@ checksum = "ceedf44fb00f2d1984b0bc98102627ce622e083e49a5bacdb3e514fa4238e267"
 
 [[package]]
 name = "pipe-rename"
-version = "1.6.3"
+version = "1.6.4"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -370,7 +370,6 @@ dependencies = [
  "predicates 1.0.8",
  "serde",
  "serde_json",
- "shell-escape",
  "shell-words",
  "subprocess",
  "tempfile",
@@ -542,12 +541,6 @@ dependencies = [
  "ryu",
  "serde",
 ]
-
-[[package]]
-name = "shell-escape"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45bb67a18fa91266cc7807181f62f9178a6873bfad7dc788c42e6430db40184f"
 
 [[package]]
 name = "shell-words"

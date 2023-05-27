@@ -24,7 +24,6 @@ shell-words = "1.0.0"
 tempfile = "3.1.0"
 dialoguer = "0.6.2"
 ansi_term = "0.12.1"
-shell-escape = "0.1.5"
 diff = "0.1.12"
 wild = "2"
 serde = { version = "1.0.152", features = ["derive"] }
