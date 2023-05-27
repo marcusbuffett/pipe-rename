@@ -4,6 +4,7 @@ use clap::Parser;
 use anyhow::{bail, Context};
 use dialoguer::Select;
 use serde::{Deserialize, Serialize};
+use shell_escape::escape;
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -306,10 +307,13 @@ fn execute_renames(
 ) -> anyhow::Result<()> {
     for replacement in replacements {
         if let Some(ref cmd) = rename_command {
-            subprocess::Exec::cmd(cmd)
-                .arg(&replacement.original)
-                .arg(&replacement.new)
-                .join()?;
+            subprocess::Exec::shell(format!(
+                "{} {} {}",
+                cmd,
+                escape(replacement.original.to_string_lossy()),
+                escape(replacement.new.to_string_lossy())
+            ))
+            .join()?;
         } else {
             match fs::rename(&replacement.original, &replacement.new) {
                 Ok(()) => (),
