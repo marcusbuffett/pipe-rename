@@ -45,7 +45,7 @@ struct Opts {
     /// Undo the previous renaming operation
     #[clap(short, long)]
     undo: bool,
-    /// Rename only filenames
+    /// Only rename filenames
     #[clap(short = 'n', long)]
     filename_only: bool,
 }
@@ -235,16 +235,17 @@ fn open_editor(
         .tempfile()
         .context("Could not create temp file")?;
 
-    let components: Vec<(PathBuf, String)> =
-        input_files.iter().filter_map(path_and_file_name).collect();
+    let mut components: Vec<(PathBuf, String)> = vec![];
 
     if filename_only {
+        components = input_files.iter().filter_map(path_and_file_name).collect();
+
         write!(
             tmpfile,
             "{}",
             components
                 .iter()
-                .map(|(_, filename)| filename.to_owned())
+                .map(|(_, filename)| filename.to_string())
                 .collect::<Vec<_>>()
                 .join("\n")
         )?;
