@@ -47,7 +47,7 @@ struct Opts {
     undo: bool,
     /// Rename only filenames
     #[clap(short = 'n', long)]
-    filenames_only: bool,
+    filename_only: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -227,7 +227,7 @@ fn path_and_file_name(line: &String) -> Option<(PathBuf, String)> {
 fn open_editor(
     input_files: &[String],
     editor_string: &str,
-    filenames_only: bool,
+    filename_only: bool,
 ) -> anyhow::Result<Vec<String>> {
     let mut tmpfile = tempfile::Builder::new()
         .prefix("renamer-")
@@ -238,7 +238,7 @@ fn open_editor(
     let components: Vec<(PathBuf, String)> =
         input_files.iter().filter_map(path_and_file_name).collect();
 
-    if filenames_only {
+    if filename_only {
         write!(
             tmpfile,
             "{}",
@@ -277,7 +277,7 @@ fn open_editor(
         .collect();
 
     // Add the path back to the filename.
-    if filenames_only {
+    if filename_only {
         return Ok(zip(components, changes)
             .map(|(parts, file_name)| parts.0.join(file_name).display().to_string())
             .collect());
@@ -490,7 +490,7 @@ fn main() -> anyhow::Result<()> {
     let mut buffer = input_files.clone();
 
     loop {
-        let new_files = open_editor(&buffer, &editor, opts.filenames_only)?;
+        let new_files = open_editor(&buffer, &editor, opts.filename_only)?;
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
