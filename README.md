@@ -62,6 +62,9 @@ OPTIONS:
     -h, --help
             Print help information
 
+    -n, --filenames-only
+            Only rename filenames
+
     -p, --pretty-diff
             Prettify diffs
 
