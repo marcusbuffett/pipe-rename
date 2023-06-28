@@ -8,6 +8,7 @@ use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::iter::zip;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -44,6 +45,9 @@ struct Opts {
     /// Undo the previous renaming operation
     #[clap(short, long)]
     undo: bool,
+    /// Only rename filenames
+    #[clap(short = 'n', long)]
+    filenames_only: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,13 +210,49 @@ fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
         .collect())
 }
 
-fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Vec<String>> {
+/** Split path into directory path and filename. */
+fn path_and_file_name(line: &String) -> Option<(PathBuf, String)> {
+    let path = PathBuf::from(line);
+    let dirname = path.parent().and_then(|p| Some(PathBuf::from(p)));
+    let file_name = path
+        .file_name()
+        .and_then(|f| f.to_os_string().into_string().ok());
+
+    match (dirname, file_name) {
+        (Some(d), Some(f)) => Some((d, f)),
+        _ => None,
+    }
+}
+
+fn open_editor(
+    input_files: &[String],
+    editor_string: &str,
+    filenames_only: bool,
+) -> anyhow::Result<Vec<String>> {
     let mut tmpfile = tempfile::Builder::new()
         .prefix("renamer-")
         .suffix(".txt")
         .tempfile()
         .context("Could not create temp file")?;
-    write!(tmpfile, "{}", input_files.join("\n"))?;
+
+    let mut components: Vec<(PathBuf, String)> = vec![];
+
+    if filenames_only {
+        components = input_files.iter().filter_map(path_and_file_name).collect();
+
+        write!(
+            tmpfile,
+            "{}",
+            components
+                .iter()
+                .map(|(_, filename)| filename.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        )?;
+    } else {
+        write!(tmpfile, "{}", input_files.join("\n"))?;
+    }
+
     let editor_parsed = shell_words::split(editor_string)
         .expect("failed to parse command line flags in EDITOR command");
     tmpfile.seek(SeekFrom::Start(0))?;
@@ -232,10 +272,19 @@ fn open_editor(input_files: &[String], editor_string: &str) -> anyhow::Result<Ve
         bail!("Editor terminated unexpectedly. Aborting.");
     }
 
-    Ok(fs::read_to_string(&tmpfile)?
+    let changes: Vec<_> = fs::read_to_string(&tmpfile)?
         .lines()
         .map(|f| f.to_string())
-        .collect())
+        .collect();
+
+    // Add the path back to the filename.
+    if filenames_only {
+        return Ok(zip(components, changes)
+            .map(|(parts, file_name)| parts.0.join(file_name).display().to_string())
+            .collect());
+    }
+
+    Ok(changes)
 }
 
 fn check_for_existing_files(replacements: &[Rename], force: bool) -> anyhow::Result<()> {
@@ -320,7 +369,7 @@ fn execute_renames(
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                     let dir = &replacement.new.parent();
                     if let Some(dir) = dir {
-                        fs::create_dir_all(&dir)?;
+                        fs::create_dir_all(dir)?;
                         fs::rename(&replacement.original, &replacement.new)?;
                     }
                 }
@@ -442,7 +491,7 @@ fn main() -> anyhow::Result<()> {
     let mut buffer = input_files.clone();
 
     loop {
-        let new_files = open_editor(&buffer, &editor)?;
+        let new_files = open_editor(&buffer, &editor, opts.filenames_only)?;
         let replacements = find_renames(&input_files, &new_files)?;
         println!();
 
