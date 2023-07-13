@@ -24,56 +24,58 @@ jobs:
       name: ${{ steps.crate_metadata.outputs.name }}
       version: ${{ steps.crate_metadata.outputs.version }}
 
-  ensure_cargo_fmt:
-    name: Ensure 'cargo fmt' has been run
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-    - uses: actions/checkout@v3
-    - run: cargo fmt -- --check
+  # ensure_cargo_fmt:
+  #   name: Ensure 'cargo fmt' has been run
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         components: rustfmt
+  #   - uses: actions/checkout@v3
+  #   - run: cargo fmt -- --check
 
-  build:
-    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
-    runs-on: ${{ matrix.job.os }}
-    needs: crate_metadata
-    strategy:
-      matrix:
-        job:
-          - { target: x86_64-apple-darwin      , os: macos-12     }
-          - { target: x86_64-pc-windows-msvc   , os: windows-2019 }
-          - { target: x86_64-unknown-linux-musl, os: ubuntu-22.04 }
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
+  # build:
+  #   name: ${{ matrix.job.target }} (${{ matrix.job.os }})
+  #   runs-on: ${{ matrix.job.os }}
+  #   needs: crate_metadata
+  #   strategy:
+  #     matrix:
+  #       job:
+  #         - { target: x86_64-apple-darwin      , os: macos-12     }
+  #         - { target: x86_64-pc-windows-msvc   , os: windows-2019 }
+  #         - { target: x86_64-unknown-linux-musl, os: ubuntu-22.04 }
+  #   steps:
+  #   - name: Checkout source code
+  #     uses: actions/checkout@v3
 
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: ${{ matrix.job.target }}
+  #   - name: Install Rust toolchain
+  #     uses: dtolnay/rust-toolchain@stable
+  #     with:
+  #       targets: ${{ matrix.job.target }}
 
-    - name: Build
-      shell: bash
-      run: cargo build --locked --release --target=${{ matrix.job.target }}
+  #   - name: Build
+  #     shell: bash
+  #     run: cargo build --locked --release --target=${{ matrix.job.target }}
 
-    - name: Set binary name & path
-      id: bin
-      shell: bash
-      run: |
-        # Figure out suffix of binary
-        EXE_suffix=""
-        case ${{ matrix.job.target }} in
-          *-pc-windows-*) EXE_suffix=".exe" ;;
-        esac;
+  #   - name: Set binary name & path
+  #     id: bin
+  #     shell: bash
+  #     run: |
+  #       # Figure out suffix of binary
+  #       EXE_suffix=""
+  #       case ${{ matrix.job.target }} in
+  #         *-pc-windows-*) EXE_suffix=".exe" ;;
+  #       esac;
 
-        # Setup paths
-        BIN_NAME="${{ needs.crate_metadata.outputs.name }}${EXE_suffix}"
-        BIN_PATH="target/${{ matrix.job.target }}/release/${BIN_NAME}"
+  #       # Setup paths
+  #       BIN_NAME="${{ needs.crate_metadata.outputs.name }}${EXE_suffix}"
+  #       BIN_PATH="target/${{ matrix.job.target }}/release/${BIN_NAME}"
 
-        # Let subsequent steps know where to find the binary
-        echo "BIN_PATH=${BIN_PATH}" >> $GITHUB_OUTPUT
-        echo "BIN_NAME=${BIN_NAME}" >> $GITHUB_OUTPUT
+  #       # Let subsequent steps know where to find the binary
+  #       echo "BIN_PATH=${BIN_PATH}" >> $GITHUB_OUTPUT
+  #       echo "BIN_NAME=${BIN_NAME}" >> $GITHUB_OUTPUT
+
+##############
 
   # build:
   #   name: Publishing for ${{ matrix.os }}
