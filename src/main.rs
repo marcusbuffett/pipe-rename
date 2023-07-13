@@ -27,10 +27,10 @@ use text_diff::{calculate_text_diff, TextDiff};
 struct Opts {
     #[clap(name = "FILES")]
     files: Vec<String>,
-    /// Optionally set a custom rename command, like 'git mv'
+    /// Use a custom rename command, like 'git mv'
     #[clap(short = 'c', long, value_name = "COMMAND")]
     rename_command: Option<String>,
-    /// Optionally set an editor, overriding EDITOR environment variable and default
+    /// Specify what editor to use
     #[clap(short = 'e', long)]
     editor: Option<String>,
     /// Prettify diffs
