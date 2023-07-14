@@ -38,3 +38,8 @@ predicates = "1.0.5"
 [profile.dev]
 opt-level = 0  # Controls the --opt-level the compiler builds with
 debug = true   # Controls whether the compiler passes `-g`
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
