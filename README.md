@@ -16,8 +16,9 @@ This will install the `renamer` binary.
 ## Usage
 
 Usage is simple, just pipe a list of files into `renamer`. This will open your
-`$EDITOR` (or vim, if not set or passed with `--editor`), and once your editor
-exits it will detect which files were renamed:
+`$EDITOR` (or vim, if not set or passed with `--editor`) -- or `%EDITOR%` (or Notepad
+on Windows, if not set or passed with `--editor`), and once your editor exits it
+will detect which files were renamed:
 
 ```bash
 ls | renamer
@@ -37,7 +38,7 @@ to run `git mv old new` on each rename, you can do something like this:
 ls | renamer --rename-command "git mv"
 ```
 
-## Helptext
+## Help text
 
 ```
 Takes a list of files and renames/moves them by piping them through an external editor
@@ -136,6 +137,26 @@ find -type f -print0 | xargs -0 renamer --editor vim
 Alas, this could be asking for trouble. If your file names contain line breaks,
 for example, this could confuse `renamer` which expects a single file name per
 line when re-reading the edited file.
+
+### Known workarounds
+
+`renamer` will wait for the editor to close, before offering to rename the files according
+to your changes. Some editors cause issues with this method, because they spawn child
+processes or similar. This is a list of known workarounds for some editors. Feel free to
+contribute by sending a pull request or opening an issue and giving the details.
+
+We can work around these issues by explicitly using a method to invoke the desired editor,
+which works with the assumptions made by `renamer`. It can be done by passing `--editor`
+(short `-e`) or setting the environment `$EDITOR` (`%EDITOR%` with `cmd.exe` or
+`$env:EDITOR` with `pwsh.exe`).
+
+* Sublime Text can be used by passing `--editor "subl -w"` to have it wait until the files
+  are closed
+
+#### Windows-specific workarounds
+
+* VS Code can be used by passing `--editor "code.cmd -"` and then giving the other files
+* VSCodium analogously can be used with `--editor "codium.cmd -"`
 
 ## Contributors ✨
 
