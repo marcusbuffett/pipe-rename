@@ -1,6 +1,6 @@
 [package]
 name = "pipe-rename"
-version = "1.6.6"
+version = "1.6.5"
 authors = ["Marcus Buffett <marcusbuffett@me.com>"]
 description = "Rename your files using your favorite text editor"
 homepage = "https://github.com/marcusbuffett/pipe-rename"

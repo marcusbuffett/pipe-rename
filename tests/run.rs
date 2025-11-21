@@ -138,11 +138,14 @@ impl TestCase {
             self.replacements.iter().map(|(_, s)| s).collect();
         assert_eq!(
             expected_files,
-            actual_files.iter().collect::<collections::HashSet<_>>()
+            actual_files
+                .iter()
+                .map(|s| s)
+                .collect::<collections::HashSet<_>>()
         );
 
         for (old, new) in &self.replacements {
-            let new_path = self.dir.path().join(new);
+            let new_path = self.dir.path().join(&new);
             assert!(new_path.is_file(), "New file does not exist: {}", &new);
             let content = fs::read_to_string(&new_path).context("Could not read output file")?;
             assert_eq!(old, &content, "File {} has unexpected content", &new);

@@ -4,7 +4,6 @@ use clap::Parser;
 use anyhow::{bail, Context};
 use dialoguer::Select;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::env;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -28,31 +27,24 @@ use text_diff::{calculate_text_diff, TextDiff};
 struct Opts {
     #[clap(name = "FILES")]
     files: Vec<String>,
-
     /// Use a custom rename command, like 'git mv'
     #[clap(short = 'c', long, value_name = "COMMAND")]
     rename_command: Option<String>,
-
     /// Specify what editor to use
     #[clap(short = 'e', long)]
     editor: Option<String>,
-
     /// Prettify diffs
     #[clap(short, long)]
     pretty_diff: bool,
-
     /// Answer all prompts with yes
     #[clap(short = 'y', long = "yes")]
     assume_yes: bool,
-
     /// Overwrite existing files
     #[clap(short, long)]
     force: bool,
-
     /// Undo the previous renaming operation
     #[clap(short, long)]
     undo: bool,
-
     /// Only rename filenames
     #[clap(short = 'n', long)]
     filenames_only: bool,
@@ -89,7 +81,7 @@ impl Rename {
                     &self.0.new.display().to_string(),
                 );
 
-                // Print old.
+                // print old
                 write!(f, "{}", Colour::Red.paint("- "))?;
                 for change in &diff_changes {
                     match change {
@@ -104,7 +96,7 @@ impl Rename {
                 }
                 writeln!(f)?;
 
-                // Print new.
+                // print new
                 write!(f, "{}", Colour::Green.paint("+ "))?;
                 for change in &diff_changes {
                     match change {
@@ -147,15 +139,16 @@ impl Display for Rename {
 
 #[derive(Error, Debug, Clone)]
 pub enum RenamerError {
-    #[error("No replacements found.")]
+    #[error("No replacements found")]
     NoReplacementsFound,
-    #[error("Unequal number of files.")]
+    #[error("Unequal number of files")]
     UnequalLines,
-    #[error("Duplicate output files.")]
-    DuplicateOutput,
 }
 
-fn find_renames(old_lines: &[String], new_lines: &[String]) -> Result<Vec<Rename>, RenamerError> {
+fn find_renames(
+    old_lines: &Vec<String>,
+    new_lines: &Vec<String>,
+) -> Result<Vec<Rename>, RenamerError> {
     if old_lines.len() != new_lines.len() {
         return Err(RenamerError::UnequalLines);
     }
@@ -175,21 +168,7 @@ fn find_renames(old_lines: &[String], new_lines: &[String]) -> Result<Vec<Rename
         return Err(RenamerError::NoReplacementsFound);
     }
 
-    has_duplicate_renames(&renames)?;
-
     Ok(renames)
-}
-
-/// Check for duplicate 'new' files.
-fn has_duplicate_renames(replacements: &[Rename]) -> Result<(), RenamerError> {
-    let mut set = HashSet::new();
-    for item in replacements {
-        if !set.insert(item.new.clone()) {
-            return Err(RenamerError::DuplicateOutput);
-        }
-    }
-
-    Ok(())
 }
 
 fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
@@ -205,8 +184,7 @@ fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
     if input.is_empty() {
         bail!("No input files on stdin or as args. Aborting.");
     }
-
-    Ok(input.lines().map(|f| f.to_string()).collect())
+    return Ok(input.lines().map(|f| f.to_string()).collect());
 }
 
 fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
@@ -232,10 +210,10 @@ fn expand_dir(path: &str) -> anyhow::Result<Vec<String>, io::Error> {
         .collect())
 }
 
-/// Split path into directory path and filename.
+/** Split path into directory path and filename. */
 fn path_and_file_name(line: &String) -> Option<(PathBuf, String)> {
     let path = PathBuf::from(line);
-    let dirname = path.parent().map(PathBuf::from);
+    let dirname = path.parent().and_then(|p| Some(PathBuf::from(p)));
     let file_name = path
         .file_name()
         .and_then(|f| f.to_os_string().into_string().ok());
@@ -361,7 +339,7 @@ fn print_replacements(replacements: &Vec<Rename>, pretty: bool) {
             .iter()
             .map(|repl| repl.pretty_diff().to_string())
             .collect::<Vec<String>>()
-            .join("\n\n"); // Leave a blank line between pretty file diffs
+            .join("\n\n"); // leave a blank line between pretty file diffs
         println!("{}", diff_output);
     } else {
         for replacement in replacements {
@@ -451,12 +429,12 @@ fn write_undo_renames(backup_file: PathBuf, replacements: Vec<Rename>) -> anyhow
     let undo_replacements = replacements
         .into_iter()
         .map(|r| {
-            // Make paths absolute to that undo does not depend on CWD.
+            // make paths absolute to that undo does not depend on CWD
             let original = make_absolute(r.original)?;
             let new = make_absolute(r.new)?;
 
             Ok(Rename {
-                // Swap original and new to get undo replacements.
+                // swap original and new to get undo replacements
                 original: new,
                 new: original,
             })
@@ -502,14 +480,14 @@ fn main() -> anyhow::Result<()> {
     }
 
     let input_files = get_input_files(opts.files)?;
+
     check_input_files(&input_files)?;
 
-    let editor = {
-        let default_editor = if cfg!(windows) { "notepad.exe" } else { "vim" };
-        opts.editor
-            .unwrap_or_else(|| env::var("EDITOR").unwrap_or(default_editor.to_string()))
-    };
-
+    let default_editor = if cfg!(windows) { "notepad.exe" } else { "vim" };
+    let default_editor = default_editor.to_string();
+    let editor = opts
+        .editor
+        .unwrap_or_else(|| env::var("EDITOR").unwrap_or(default_editor));
     let mut buffer = input_files.clone();
 
     loop {
@@ -535,7 +513,7 @@ fn main() -> anyhow::Result<()> {
                 break;
             }
             MenuItem::No => {
-                println!("Aborting.");
+                println!("Aborting");
                 break;
             }
             MenuItem::Edit => buffer = new_files.clone(),
