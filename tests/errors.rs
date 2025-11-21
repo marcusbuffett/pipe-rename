@@ -8,7 +8,7 @@ fn test_no_input() -> anyhow::Result<()> {
     assert
         .failure()
         .stdout("")
-        .stderr("Error: No input files on stdin or as args. Aborting.\n");
+        .stderr("Error: No input files on stdin or as args.\n");
     Ok(())
 }
 
@@ -33,6 +33,12 @@ fn test_unequal_lines() -> anyhow::Result<()> {
 }
 
 #[test]
+#[should_panic(expected = "assertion `left == right` failed")]
+fn test_duplicate_input() {
+    let _ = run_with_env(&["aaa", "aaa"], &["bbb", "ccc"], true);
+}
+
+#[test]
 fn test_duplicate_output() -> anyhow::Result<()> {
     let assert = run_with_env(&["aaa", "bbb"], &["ccc", "ccc"], true)?;
     assert
@@ -51,7 +57,7 @@ fn test_rename() -> anyhow::Result<()> {
     let assert = test_case.run()?;
     assert
         .failure()
-        .stderr("Error: Refusing to overwrite existing files. Aborting.\n");
+        .stderr("Error: Refusing to overwrite existing files.\n");
 
     // TODO: assert stdout
     // TODO: assert that nothing has been renamed

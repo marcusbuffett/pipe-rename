@@ -180,9 +180,10 @@ fn find_renames(old_lines: &[String], new_lines: &[String]) -> Result<Vec<Rename
     Ok(renames)
 }
 
-/// Check for duplicate 'new' files.
+/// Check for duplicate new files.
 fn has_duplicate_renames(replacements: &[Rename]) -> Result<(), RenamerError> {
     let mut set = HashSet::new();
+
     for item in replacements {
         if !set.insert(item.new.clone()) {
             return Err(RenamerError::DuplicateOutput);
@@ -203,7 +204,7 @@ fn get_input(files: Vec<String>) -> anyhow::Result<Vec<String>> {
         buffer
     };
     if input.is_empty() {
-        bail!("No input files on stdin or as args. Aborting.");
+        bail!("No input files on stdin or as args.");
     }
 
     Ok(input.lines().map(|f| f.to_string()).collect())
@@ -217,7 +218,7 @@ fn get_input_files(files: Vec<String>) -> anyhow::Result<Vec<String>> {
         input_files = expand_dir(&input_files[0])?;
     }
     if input_files.is_empty() {
-        bail!("No input files on stdin or as args. Aborting.");
+        bail!("No input files on stdin or as args.");
     }
 
     Ok(input_files)
@@ -291,7 +292,7 @@ fn open_editor(
 
     let output = child.wait_with_output()?;
     if !output.status.success() {
-        bail!("Editor terminated unexpectedly. Aborting.");
+        bail!("Editor terminated unexpectedly.");
     }
 
     let changes: Vec<_> = fs::read_to_string(&tmpfile)?
@@ -325,7 +326,7 @@ fn check_for_existing_files(replacements: &[Rename], force: bool) -> anyhow::Res
             println!("{}", Colour::Red.paint(replacement.to_string()));
         }
         println!();
-        bail!("Refusing to overwrite existing files. Aborting.");
+        bail!("Refusing to overwrite existing files.");
     }
 
     Ok(())
@@ -343,7 +344,15 @@ fn check_input_files(input_files: &[String]) -> anyhow::Result<()> {
             println!("{}", Colour::Red.paint(file));
         }
         println!();
-        bail!("Nonexistent input files. Aborting.");
+        bail!("Nonexistent input files.");
+    }
+
+    let mut set = HashSet::new();
+
+    for item in input_files {
+        if !set.insert(item.clone()) {
+            bail!("Duplicate input files.");
+        }
     }
 
     Ok(())
